@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-canvas: #08090c;
+  --color-surface: #0d1015;
+  --color-surface-2: #12161d;
+  --color-surface-3: #191e27;
+  --color-line: #1a1f28;
+  --color-line-2: #252b36;
+  --color-fg: #e6e9ee;
+  --color-fg-2: #a3abb8;
+  --color-fg-3: #697282;
+  --color-fg-4: #454c58;
+  --color-accent: #4d8dff;
+  --color-up: #2ebd85;
+  --color-down: #f0555a;
+  --color-warn: #d9a548;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    overflow-y: auto;
+  }
+  body {
+    background: #08090c;
+    color: #e6e9ee;
+    font-family: 'Inter', 'SF Pro Display', ui-sans-serif, system-ui, sans-serif;
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'cv11', 'tnum';
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  ::selection { background: rgba(77, 141, 255, 0.35); }
+}
+
+@layer utilities {
+  .num {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  .scroll-thin { scrollbar-width: thin; scrollbar-color: #252b36 transparent; }
+  .scroll-none { scrollbar-width: none; }
+  .scroll-none::-webkit-scrollbar { display: none; }
+  .skeleton {
+    background: linear-gradient(90deg, #12161d 0%, #1a1f28 50%, #12161d 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+}

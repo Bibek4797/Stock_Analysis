@@ -1,0 +1,102 @@
+# ==============================================================================
+# Q-ALPHA Terminal — Production Git Ignore & Security Policy
+# Prevents leaking sensitive keys, credentials, local databases, caches, and bloat
+# ==============================================================================
+
+# ── Secrets & Environment Variables ───────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.env
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+*.csr
+secrets.json
+credentials.json
+id_rsa*
+*.id_rsa*
+
+# ── Python & Data Caches ──────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+*.parquet
+*.feather
+*.h5
+*.pkl
+*.npy
+*.npz
+backend/cache/
+*.log
+
+# ── Virtual Environments ──────────────────────────────────────────────────────
+venv/
+.venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# ── Node.js & Frontend ────────────────────────────────────────────────────────
+node_modules/
+frontend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.vite/
+frontend/.vite/
+frontend/src_legacy_backup/
+
+# ── IDE & Editor Configuration ────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.project
+.settings/
+
+# ── Operating System Junk ─────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Dd]esktop.ini
+
+# ── Antigravity / AI Agent Runtime & Logs ──────────────────────────────────────
+.antigravity/
+.gemini/
+.system_generated/
+scratch/
