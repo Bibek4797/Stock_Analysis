@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Lock, User, Eye, EyeOff, ShieldCheck, ArrowRight, AlertCircle, Key } from 'lucide-react'
+import { Lock, User, Eye, EyeOff, ShieldCheck, ArrowRight, AlertCircle } from 'lucide-react'
 import { login, type UserAccount } from '@/lib/auth'
 
 interface LoginScreenProps {
@@ -23,16 +23,10 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
       if (res.success && res.user) {
         onLoginSuccess(res.user)
       } else {
-        setError(res.error || 'Authentication failed. Please verify credentials.')
+        setError(res.error || 'Invalid User ID or password. Access denied.')
       }
       setIsSubmitting(false)
-    }, 350)
-  }
-
-  const fillQuick = (u: string, p: string) => {
-    setUserId(u)
-    setPassword(p)
-    setError(null)
+    }, 250)
   }
 
   return (
@@ -43,7 +37,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
         <div className="absolute -bottom-40 -right-40 size-[480px] rounded-full bg-up/5 blur-[120px]" />
       </div>
 
-      <div className="relative w-full max-w-[420px]">
+      <div className="relative w-full max-w-[400px]">
         {/* Header branding */}
         <div className="mb-6 text-center">
           <div className="inline-flex items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-1.5 shadow-sm">
@@ -63,11 +57,11 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             <span className="text-[11px] font-medium text-fg-3">NSE Terminal Gate</span>
           </div>
 
-          <h1 className="mt-4 text-[22px] font-semibold tracking-tight text-fg">
+          <h1 className="mt-4 text-[21px] font-semibold tracking-tight text-fg">
             Sign In to Institutional Terminal
           </h1>
-          <p className="mt-1 text-[12.5px] text-fg-3">
-            Enter your assigned User ID and Password to proceed
+          <p className="mt-1 text-[12px] text-fg-3">
+            Enter your assigned User ID and password to proceed
           </p>
         </div>
 
@@ -84,7 +78,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             <div>
               <label className="mb-1.5 flex items-center justify-between text-[11.5px] font-medium text-fg-3">
                 <span>User ID</span>
-                <span className="text-[10px] text-fg-4">Admin or Trader</span>
+                <span className="text-[10px] text-fg-4">Required</span>
               </label>
               <div className="relative flex items-center">
                 <User className="absolute left-3 size-4 text-fg-4" />
@@ -94,7 +88,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                   required
                   value={userId}
                   onChange={(e) => setUserId(e.target.value)}
-                  placeholder="Enter User ID (e.g. 1234)"
+                  placeholder="Enter User ID"
                   className="num h-10 w-full rounded-lg border border-line bg-canvas pl-9 pr-3 text-[13px] text-fg transition-colors focus:border-accent focus:outline-none placeholder:text-fg-4"
                 />
               </div>
@@ -119,6 +113,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 text-fg-4 transition-colors hover:text-fg-2"
+                  title={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
@@ -127,44 +122,19 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !userId.trim() || !password}
               className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-accent text-[13px] font-semibold text-canvas shadow transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-50"
             >
               <span>{isSubmitting ? 'Verifying Credentials…' : 'Enter Terminal'}</span>
               <ArrowRight className="size-4" />
             </button>
           </form>
-
-          {/* Quick Demo Credentials */}
-          <div className="mt-5 border-t border-line pt-4">
-            <span className="block text-center text-[10.5px] font-medium uppercase tracking-wider text-fg-4">
-              Preset Access Credentials
-            </span>
-            <div className="mt-2 flex gap-2">
-              <button
-                type="button"
-                onClick={() => fillQuick('1234', '1234')}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-line bg-surface-2 py-1.5 text-[11px] font-medium text-fg-2 transition-colors hover:border-accent/40 hover:bg-surface-3 hover:text-accent"
-              >
-                <Key className="size-3 text-accent" />
-                <span>Admin: <strong>1234</strong></span>
-              </button>
-              <button
-                type="button"
-                onClick={() => fillQuick('trader1', 'user123')}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-line bg-surface-2 py-1.5 text-[11px] font-medium text-fg-2 transition-colors hover:border-up/40 hover:bg-surface-3 hover:text-up"
-              >
-                <User className="size-3 text-up" />
-                <span>User: <strong>trader1</strong></span>
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* Security watermark footer */}
         <div className="mt-6 flex items-center justify-center gap-2 text-[11px] text-fg-4">
           <ShieldCheck className="size-3.5 text-up" />
-          <span>Role-Based Access Control · Local Encrypted Credentials</span>
+          <span>Strict Role-Based Access Control · Encrypted Credentials</span>
         </div>
       </div>
     </div>
