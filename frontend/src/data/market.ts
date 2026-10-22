@@ -305,14 +305,17 @@ export function forecast(
   const sigmaH = effDv * Math.sqrt(horizon)
   const expRet = s.drift * driftMultiplier * horizon
   const swing = 1.2 * sigmaH
-  const tail = Math.min(expRet - 1.85 * sigmaH, -0.0005)
-  const target = price * (1 + expRet)
+  // Institutional Downside Tail Risk (CVaR equivalent) scales with sqrt(horizon).
+  // A conservative stop-loss protects against downside volatility and is not offset by expected positive drift.
+  const tail = -Math.max(0.012, 1.85 * sigmaH)
+  const targetProfitPct = Math.max(0.015, Math.max(expRet, 1.5 * sigmaH))
+  const target = price * (1 + targetProfitPct)
   const stop = price * (1 + tail)
-  const rewardRisk = expRet > 0 ? expRet / Math.abs(tail) : 0
+  const rewardRisk = targetProfitPct / Math.abs(tail)
   const score = expRet / sigmaH
   const confidence = clamp(52 + score * 12 + hitRateBoost, 46, 78)
   let signal: Signal = 'Avoid'
-  if (score > 0.95 && rewardRisk > 1.1) signal = 'Strong Buy'
+  if (score > 0.95 && rewardRisk > 0.75) signal = 'Strong Buy'
   else if (score > 0.35) signal = 'Moderate Buy'
   else if (score > -0.1) signal = 'Hold'
   return {
