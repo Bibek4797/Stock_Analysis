@@ -38,7 +38,7 @@ import { RiskScreen } from '@/screens/risk/RiskScreen'
 import { PortfolioScreen } from '@/screens/portfolio/PortfolioScreen'
 import { AdminScreen } from '@/screens/admin/AdminScreen'
 import { LoginScreen } from '@/screens/auth/LoginScreen'
-import { getCurrentUser, logout, type UserAccount } from '@/lib/auth'
+import { getCurrentUser, logout, syncUsersWithServer, type UserAccount } from '@/lib/auth'
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => getCurrentUser())
@@ -92,8 +92,9 @@ export default function App() {
     }
   }, [tab, currentUser])
 
-  // 1. Fetch Universe from Real Backend on Mount
+  // 1. Sync Central Accounts & Fetch Universe from Real Backend on Mount
   useEffect(() => {
+    syncUsersWithServer().catch(() => {})
     fetchUniverse()
       .then((res) => {
         if (res?.universe?.equities && res.universe.equities.length > 0) {

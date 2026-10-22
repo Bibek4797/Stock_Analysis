@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import {
   Shield,
   User,
@@ -17,6 +17,7 @@ import {
   addUser,
   updateUser,
   deleteUser,
+  syncUsersWithServer,
   type UserAccount,
 } from '@/lib/auth'
 import { Chip, Panel, Stat, TD, TH } from '@/components/ui'
@@ -41,10 +42,15 @@ export function AdminScreen({ currentUser, onUserSessionUpdate }: AdminScreenPro
   const [modalRole, setModalRole] = useState<'admin' | 'user'>('user')
   const [modalError, setModalError] = useState<string | null>(null)
 
-  // Refresh user list from storage
-  const reloadUsers = () => {
-    setUsers(getUsers())
+  // Refresh user list from storage & central server
+  const reloadUsers = async () => {
+    const list = await syncUsersWithServer()
+    setUsers(list)
   }
+
+  useEffect(() => {
+    reloadUsers()
+  }, [])
 
   // Filtered users list
   const filteredUsers = useMemo(() => {
@@ -85,13 +91,13 @@ export function AdminScreen({ currentUser, onUserSessionUpdate }: AdminScreenPro
   }
 
   // Submit Modal (Add or Edit)
-  const handleModalSubmit = (e: React.FormEvent) => {
+  const handleModalSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setModalError(null)
 
     if (editingUser) {
       // Edit
-      const res = updateUser(editingUser.id, {
+      const res = await updateUser(editingUser.id, {
         userId: modalUserId,
         password: modalPassword,
         name: modalName,
@@ -99,7 +105,7 @@ export function AdminScreen({ currentUser, onUserSessionUpdate }: AdminScreenPro
       })
       if (res.success) {
         setIsModalOpen(false)
-        reloadUsers()
+        await reloadUsers()
         // If current logged-in user was updated, notify parent state immediately
         if (editingUser.id === currentUser.id || editingUser.userId === currentUser.userId) {
           onUserSessionUpdate({
@@ -115,7 +121,7 @@ export function AdminScreen({ currentUser, onUserSessionUpdate }: AdminScreenPro
       }
     } else {
       // Add
-      const res = addUser({
+      const res = await addUser({
         userId: modalUserId,
         password: modalPassword,
         name: modalName,
@@ -123,7 +129,7 @@ export function AdminScreen({ currentUser, onUserSessionUpdate }: AdminScreenPro
       })
       if (res.success) {
         setIsModalOpen(false)
-        reloadUsers()
+        await reloadUsers()
       } else {
         setModalError(res.error || 'Failed to create user account.')
       }
@@ -131,11 +137,11 @@ export function AdminScreen({ currentUser, onUserSessionUpdate }: AdminScreenPro
   }
 
   // Delete User
-  const handleDeleteUser = (id: string, targetUserId: string) => {
+  const handleDeleteUser = async (id: string, targetUserId: string) => {
     if (confirm(`Are you sure you want to permanently delete user "${targetUserId}"?`)) {
-      const res = deleteUser(id, currentUser.userId)
+      const res = await deleteUser(id, currentUser.userId)
       if (res.success) {
-        reloadUsers()
+        await reloadUsers()
       } else {
         alert(res.error || 'Failed to delete user.')
       }

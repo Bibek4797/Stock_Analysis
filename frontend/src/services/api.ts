@@ -91,3 +91,66 @@ export async function fetchPortfolioOptimize(params: {
   }
   return res.json();
 }
+
+// ---------------------------------------------------------------------------
+// Centralized Authentication API
+// ---------------------------------------------------------------------------
+
+export async function fetchApiUsers(): Promise<any[]> {
+  const res = await fetch(`${API_BASE}/auth/users`);
+  if (!res.ok) throw new Error('Failed to fetch users from server');
+  const data = await res.json();
+  return data.users || [];
+}
+
+export async function apiLogin(userId: string, password: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, password }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || 'Login failed');
+  }
+  const data = await res.json();
+  return data.user;
+}
+
+export async function apiCreateUser(user: { userId: string; password: string; name: string; role: string }): Promise<any> {
+  const res = await fetch(`${API_BASE}/auth/users`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(user),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || 'Failed to create user');
+  }
+  return res.json();
+}
+
+export async function apiUpdateUser(userId: string, updates: { userId?: string; password?: string; name?: string; role?: string }): Promise<any> {
+  const res = await fetch(`${API_BASE}/auth/users/${encodeURIComponent(userId)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || 'Failed to update user');
+  }
+  return res.json();
+}
+
+export async function apiDeleteUser(userId: string, currentAdminId?: string): Promise<any> {
+  const q = currentAdminId ? `?current_admin_id=${encodeURIComponent(currentAdminId)}` : '';
+  const res = await fetch(`${API_BASE}/auth/users/${encodeURIComponent(userId)}${q}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || 'Failed to delete user');
+  }
+  return res.json();
+}

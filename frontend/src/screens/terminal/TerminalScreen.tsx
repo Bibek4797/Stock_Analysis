@@ -36,7 +36,7 @@ export function TerminalScreen(props: {
         stocks={stocks}
       />
       <div className="scroll-thin flex min-w-0 flex-col gap-3 lg:h-[calc(100dvh-49px)] lg:overflow-y-auto lg:p-3">
-        <InstrumentHeader stock={stock} price={price} />
+        <InstrumentHeader stock={stock} price={price} bars={bars} />
         <div className="flex h-[440px] shrink-0 flex-col overflow-hidden rounded-lg border border-line bg-surface lg:h-auto lg:min-h-[340px] lg:flex-1">
           <PriceChart stock={stock} price={price} fc={fc} bars={bars} />
         </div>

@@ -1,0 +1,18 @@
+[
+  {
+    "id": "admin_root",
+    "userId": "1234",
+    "password": "1234",
+    "role": "admin",
+    "name": "Administrator",
+    "createdAt": "2026-10-22"
+  },
+  {
+    "id": "user_default",
+    "userId": "trader1",
+    "password": "user123",
+    "role": "user",
+    "name": "Institutional Trader",
+    "createdAt": "2026-10-22"
+  }
+]

@@ -13,6 +13,8 @@ from datetime import datetime, timedelta
 import logging
 import hashlib
 import time
+import os
+import json
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("qalpha-backend")
@@ -598,6 +600,150 @@ def optimize_portfolio_get(
     except Exception as e:
         logger.error(f"Error in portfolio optimizer: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+# ==============================================================================
+# 6. CENTRALIZED USER AUTHENTICATION & SESSION PERSISTENCE
+# ==============================================================================
+
+USERS_FILE = os.path.join(os.path.dirname(__file__), "data", "users.json")
+
+def load_persisted_users() -> List[Dict[str, Any]]:
+    if not os.path.exists(USERS_FILE):
+        os.makedirs(os.path.dirname(USERS_FILE), exist_ok=True)
+        default_users = [
+            {
+                "id": "admin_root",
+                "userId": "1234",
+                "password": "1234",
+                "role": "admin",
+                "name": "Administrator",
+                "createdAt": "2026-10-22"
+            },
+            {
+                "id": "user_default",
+                "userId": "trader1",
+                "password": "user123",
+                "role": "user",
+                "name": "Institutional Trader",
+                "createdAt": "2026-10-22"
+            }
+        ]
+        with open(USERS_FILE, "w", encoding="utf-8") as f:
+            json.dump(default_users, f, indent=2)
+        return default_users
+    try:
+        with open(USERS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Error loading users: {e}")
+        return []
+
+def save_persisted_users(users: List[Dict[str, Any]]) -> None:
+    try:
+        os.makedirs(os.path.dirname(USERS_FILE), exist_ok=True)
+        with open(USERS_FILE, "w", encoding="utf-8") as f:
+            json.dump(users, f, indent=2)
+    except Exception as e:
+        logger.error(f"Error saving users: {e}")
+
+class LoginRequest(BaseModel):
+    userId: str
+    password: str
+
+class UserCreateRequest(BaseModel):
+    userId: str
+    password: str
+    name: str
+    role: str = "user"
+
+class UserUpdateRequest(BaseModel):
+    userId: Optional[str] = None
+    password: Optional[str] = None
+    name: Optional[str] = None
+    role: Optional[str] = None
+
+@app.get("/api/auth/users")
+def get_users_list():
+    users = load_persisted_users()
+    return {"status": "success", "users": users}
+
+@app.post("/api/auth/login")
+def auth_login(req: LoginRequest):
+    users = load_persisted_users()
+    req_uid = req.userId.strip().lower()
+    for u in users:
+        if u["userId"].strip().lower() == req_uid and u["password"] == req.password:
+            return {"status": "success", "user": u}
+    raise HTTPException(status_code=401, detail="Invalid User ID or password. Please verify credentials.")
+
+@app.post("/api/auth/users")
+def create_user(req: UserCreateRequest):
+    users = load_persisted_users()
+    req_uid = req.userId.strip()
+    if any(u["userId"].strip().lower() == req_uid.lower() for u in users):
+        raise HTTPException(status_code=400, detail=f"User ID '{req_uid}' already exists.")
+    
+    new_user = {
+        "id": f"usr_{int(time.time()*1000)}",
+        "userId": req_uid,
+        "password": req.password,
+        "name": req.name.strip(),
+        "role": req.role if req.role in ["admin", "user"] else "user",
+        "createdAt": datetime.now().strftime("%Y-%m-%d")
+    }
+    users.append(new_user)
+    save_persisted_users(users)
+    return {"status": "success", "user": new_user, "users": users}
+
+@app.put("/api/auth/users/{user_id}")
+def update_user(user_id: str, req: UserUpdateRequest):
+    users = load_persisted_users()
+    found = False
+    updated_user = None
+    for u in users:
+        if u["id"] == user_id or u["userId"].lower() == user_id.lower():
+            found = True
+            if req.userId:
+                if any(other["userId"].lower() == req.userId.strip().lower() and other["id"] != u["id"] for other in users):
+                    raise HTTPException(status_code=400, detail=f"User ID '{req.userId}' is already in use.")
+                u["userId"] = req.userId.strip()
+            if req.password:
+                u["password"] = req.password
+            if req.name:
+                u["name"] = req.name.strip()
+            if req.role and req.role in ["admin", "user"]:
+                u["role"] = req.role
+            updated_user = u
+            break
+            
+    if not found:
+        raise HTTPException(status_code=404, detail="User not found.")
+        
+    save_persisted_users(users)
+    return {"status": "success", "user": updated_user, "users": users}
+
+@app.delete("/api/auth/users/{user_id}")
+def delete_user(user_id: str, current_admin_id: Optional[str] = Query(None)):
+    users = load_persisted_users()
+    target = None
+    for u in users:
+        if u["id"] == user_id or u["userId"].lower() == user_id.lower():
+            target = u
+            break
+            
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found.")
+        
+    if current_admin_id and target["userId"].lower() == current_admin_id.lower():
+        raise HTTPException(status_code=400, detail="Cannot delete your own active administrator account.")
+        
+    admin_count = sum(1 for u in users if u["role"] == "admin" and u["id"] != target["id"])
+    if target["role"] == "admin" and admin_count == 0:
+        raise HTTPException(status_code=400, detail="Cannot delete the sole administrator account.")
+        
+    users = [u for u in users if u["id"] != target["id"]]
+    save_persisted_users(users)
+    return {"status": "success", "message": f"User {target['userId']} deleted.", "users": users}
 
 @app.get("/api/health")
 def health_check():

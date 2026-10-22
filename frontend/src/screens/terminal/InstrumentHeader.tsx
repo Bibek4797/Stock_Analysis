@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { getHistory, type Stock } from '@/data/market'
+import { getHistory, type Bar, type Stock } from '@/data/market'
 import { cx, num, pct } from '@/lib/format'
 
 function compactQty(v: number) {
@@ -12,27 +12,31 @@ function compactQty(v: number) {
 export function InstrumentHeader({
   stock,
   price,
+  bars: customBars,
 }: {
   stock: Stock
   price: number
+  bars?: Bar[]
 }) {
   const stats = useMemo(() => {
-    const hist = getHistory(stock.symbol)
+    const hist = customBars && customBars.length > 0 ? customBars : getHistory(stock.symbol)
     const last = hist[hist.length - 1]
+    const prev = hist.length > 1 ? hist[hist.length - 2] : last
     const yr = hist.slice(-252)
     const closes = hist.slice(-200).map((b) => b.c)
     return {
       open: last.o,
       high: Math.max(last.h, price),
       low: Math.min(last.l, price),
+      prevClose: prev.c,
       hi52: Math.max(...yr.map((b) => b.h), price),
       lo52: Math.min(...yr.map((b) => b.l), price),
       avgVol: hist.slice(-20).reduce((a, b) => a + b.v, 0) / 20,
       sma200: closes.reduce((a, b) => a + b, 0) / closes.length,
     }
-  }, [stock.symbol, price])
+  }, [stock.symbol, price, customBars])
 
-  const prevClose = price / (1 + stock.change)
+  const prevClose = stats.prevClose
   const dayChg = price - prevClose
   const up = dayChg >= 0
   const posIn52 = (price - stats.lo52) / Math.max(1e-9, stats.hi52 - stats.lo52)

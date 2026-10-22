@@ -13,20 +13,23 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setIsSubmitting(true)
 
-    setTimeout(() => {
-      const res = login(userId, password)
+    try {
+      const res = await login(userId, password)
       if (res.success && res.user) {
         onLoginSuccess(res.user)
       } else {
         setError(res.error || 'Invalid User ID or password. Access denied.')
       }
+    } catch (err: any) {
+      setError(err.message || 'Login failed. Please verify credentials.')
+    } finally {
       setIsSubmitting(false)
-    }, 250)
+    }
   }
 
   return (

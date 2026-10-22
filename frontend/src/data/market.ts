@@ -1,5 +1,6 @@
 import { clamp } from '@/lib/format'
 import type { QuantForecastResponse } from '@/types'
+import REAL_HISTORY_DATA from './real_history.json'
 
 export type Sector = 'Bank' | 'IT' | 'Energy' | 'Auto' | 'Pharma' | 'FMCG' | 'Metals' | 'ETF'
 export const SECTORS: Array<'All' | Sector> = [
@@ -160,6 +161,26 @@ function tradingDaysBack(n: number): number[] {
 export function getHistory(symbol: string): Bar[] {
   const cached = historyCache.get(symbol)
   if (cached) return cached
+
+  // Check authentic scraped 1-year historical OHLCV first
+  const realMap = REAL_HISTORY_DATA as Record<string, Bar[]>
+  const realBars = realMap[symbol] || realMap[`${symbol}.NS`]
+  if (realBars && realBars.length > 0) {
+    const s = STOCK_MAP[symbol]
+    let bars = realBars
+    // If live price has drifted, ensure latest close aligns with current price
+    if (s && bars.length > 0) {
+      const last = bars[bars.length - 1]
+      if (Math.abs(last.c - s.price) > 0.01) {
+        bars = [
+          ...bars.slice(0, -1),
+          { ...last, c: s.price, h: Math.max(last.h, s.price), l: Math.min(last.l, s.price) }
+        ]
+      }
+    }
+    historyCache.set(symbol, bars)
+    return bars
+  }
   const s = STOCK_MAP[symbol]
   const r = rng(hashStr(symbol + ':hist'))
   const dates = tradingDaysBack(HISTORY_DAYS)
