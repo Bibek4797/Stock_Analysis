@@ -1,4 +1,5 @@
 import { clamp } from '@/lib/format'
+import type { QuantForecastResponse } from '@/types'
 
 export type Sector = 'Bank' | 'IT' | 'Energy' | 'Auto' | 'Pharma' | 'FMCG' | 'Metals' | 'ETF'
 export const SECTORS: Array<'All' | Sector> = [
@@ -50,54 +51,68 @@ export function gauss(r: () => number) {
 }
 
 type Raw = [string, string, Sector, string, number, number, number, number?]
-// symbol, name, sector, sector label, price, change %, annual vol, (optional drift override)
+// symbol, name, sector, sector label, real base price, change %, annual vol, (optional drift override)
 const RAW: Raw[] = [
-  ['RELIANCE', 'Reliance Industries Ltd', 'Energy', 'Energy, Oil & Power', 1680.0, 1.24, 0.242, 0.0077],
-  ['HDFCBANK', 'HDFC Bank Ltd', 'Bank', 'Private Banking', 1742.3, 0.86, 0.198, 0.0052],
-  ['ICICIBANK', 'ICICI Bank Ltd', 'Bank', 'Private Banking', 1268.45, 1.12, 0.214, 0.0061],
-  ['SBIN', 'State Bank of India', 'Bank', 'PSU Banking', 812.6, -0.42, 0.268, 0.0024],
-  ['KOTAKBANK', 'Kotak Mahindra Bank', 'Bank', 'Private Banking', 1915.2, -0.18, 0.221, 0.0014],
-  ['AXISBANK', 'Axis Bank Ltd', 'Bank', 'Private Banking', 1142.75, 0.64, 0.241, 0.0033],
-  ['INDUSINDBK', 'IndusInd Bank Ltd', 'Bank', 'Private Banking', 985.4, -1.86, 0.354, -0.0031],
-  ['BANKBARODA', 'Bank of Baroda', 'Bank', 'PSU Banking', 248.15, 0.92, 0.312, 0.0019],
-  ['PNB', 'Punjab National Bank', 'Bank', 'PSU Banking', 104.3, -0.71, 0.338, -0.0012],
-  ['TCS', 'Tata Consultancy Services', 'IT', 'IT Services', 4125.6, 1.48, 0.186, 0.0064],
-  ['INFY', 'Infosys Ltd', 'IT', 'IT Services', 1862.4, 1.05, 0.214, 0.0049],
-  ['WIPRO', 'Wipro Ltd', 'IT', 'IT Services', 298.55, -0.38, 0.236, 0.0006],
-  ['HCLTECH', 'HCL Technologies Ltd', 'IT', 'IT Services', 1754.9, 0.72, 0.204, 0.0043],
-  ['TECHM', 'Tech Mahindra Ltd', 'IT', 'IT Services', 1612.3, -0.92, 0.262, -0.0008],
-  ['LTIM', 'LTIMindtree Ltd', 'IT', 'IT Services', 5842.1, 0.31, 0.248, 0.0017],
-  ['ONGC', 'Oil & Natural Gas Corp', 'Energy', 'Oil & Gas Exploration', 268.4, -0.55, 0.284, 0.0009],
-  ['NTPC', 'NTPC Ltd', 'Energy', 'Power Generation', 362.75, 0.88, 0.226, 0.0041],
-  ['POWERGRID', 'Power Grid Corp of India', 'Energy', 'Power Transmission', 318.2, 0.42, 0.198, 0.0036],
-  ['ADANIGREEN', 'Adani Green Energy', 'Energy', 'Renewables', 1045.6, -2.34, 0.486, -0.0042],
-  ['TATAPOWER', 'Tata Power Company', 'Energy', 'Power Utilities', 412.35, 1.36, 0.318, 0.0028],
-  ['COALINDIA', 'Coal India Ltd', 'Energy', 'Mining & Fuel', 398.5, 0.21, 0.254, 0.0011],
-  ['MARUTI', 'Maruti Suzuki India', 'Auto', 'Passenger Vehicles', 12480.0, 0.94, 0.218, 0.0046],
-  ['TATAMOTORS', 'Tata Motors Ltd', 'Auto', 'Automobiles', 742.85, -1.24, 0.342, -0.0019],
-  ['M&M', 'Mahindra & Mahindra', 'Auto', 'Automobiles', 2985.4, 1.62, 0.256, 0.0058],
-  ['BAJAJ-AUTO', 'Bajaj Auto Ltd', 'Auto', 'Two & Three Wheelers', 9124.5, 0.48, 0.232, 0.0031],
-  ['EICHERMOT', 'Eicher Motors Ltd', 'Auto', 'Two Wheelers', 4865.2, 0.76, 0.244, 0.0038],
-  ['HEROMOTOCO', 'Hero MotoCorp Ltd', 'Auto', 'Two Wheelers', 4512.3, -0.34, 0.238, 0.0007],
-  ['SUNPHARMA', 'Sun Pharmaceutical Inds', 'Pharma', 'Pharmaceuticals', 1812.6, 0.68, 0.192, 0.0044],
-  ['DRREDDY', "Dr. Reddy's Laboratories", 'Pharma', 'Pharmaceuticals', 1268.9, -0.26, 0.206, 0.0013],
-  ['CIPLA', 'Cipla Ltd', 'Pharma', 'Pharmaceuticals', 1485.75, 0.54, 0.198, 0.0034],
-  ['DIVISLAB', "Divi's Laboratories", 'Pharma', 'API Manufacturing', 5912.4, 1.18, 0.252, 0.0047],
-  ['APOLLOHOSP', 'Apollo Hospitals Enterprise', 'Pharma', 'Healthcare Services', 7045.8, 0.36, 0.228, 0.0029],
-  ['HINDUNILVR', 'Hindustan Unilever Ltd', 'FMCG', 'Consumer Staples', 2412.55, -0.44, 0.168, 0.0008],
-  ['ITC', 'ITC Ltd', 'FMCG', 'Diversified FMCG', 468.2, 0.58, 0.176, 0.0032],
-  ['NESTLEIND', 'Nestle India Ltd', 'FMCG', 'Packaged Foods', 2298.4, -0.62, 0.172, -0.0006],
-  ['BRITANNIA', 'Britannia Industries', 'FMCG', 'Packaged Foods', 5124.6, 0.22, 0.188, 0.0015],
-  ['TATACONSUM', 'Tata Consumer Products', 'FMCG', 'Beverages & Foods', 1086.3, 0.81, 0.224, 0.0035],
-  ['TATASTEEL', 'Tata Steel Ltd', 'Metals', 'Steel', 152.4, -1.42, 0.326, -0.0016],
-  ['JSWSTEEL', 'JSW Steel Ltd', 'Metals', 'Steel', 985.6, 0.48, 0.284, 0.0022],
-  ['HINDALCO', 'Hindalco Industries', 'Metals', 'Aluminium & Copper', 648.25, 1.34, 0.302, 0.0039],
-  ['VEDL', 'Vedanta Ltd', 'Metals', 'Diversified Metals', 452.8, -0.86, 0.364, -0.0004],
-  ['NIFTYBEES', 'Nippon India Nifty 50 BeES', 'ETF', 'Index ETF', 268.45, 0.58, 0.142, 0.0021],
-  ['BANKBEES', 'Nippon India Bank BeES', 'ETF', 'Sector ETF', 542.3, 0.71, 0.178, 0.0026],
-  ['ITBEES', 'Nippon India IT BeES', 'ETF', 'Sector ETF', 42.15, 1.02, 0.196, 0.0031],
-  ['GOLDBEES', 'Nippon India Gold BeES', 'ETF', 'Commodity ETF', 68.75, 0.18, 0.124, 0.0012],
-  ['LIQUIDBEES', 'Nippon India Liquid BeES', 'ETF', 'Overnight Cash ETF', 1000.0, 0.02, 0.004, 0.00025],
+  // 1. Banking & Finance
+  ['HDFCBANK', 'HDFC Bank Ltd', 'Bank', 'Banking & Finance', 1680.0, 0.85, 0.198, 0.0052],
+  ['ICICIBANK', 'ICICI Bank Ltd', 'Bank', 'Banking & Finance', 1245.0, 1.12, 0.214, 0.0061],
+  ['SBIN', 'State Bank of India', 'Bank', 'Banking & Finance', 795.0, -0.42, 0.268, 0.0024],
+  ['KOTAKBANK', 'Kotak Mahindra Bank Ltd', 'Bank', 'Banking & Finance', 1780.0, -0.18, 0.221, 0.0014],
+  ['AXISBANK', 'Axis Bank Ltd', 'Bank', 'Banking & Finance', 1180.0, 0.64, 0.241, 0.0033],
+  ['BAJFINANCE', 'Bajaj Finance Ltd', 'Bank', 'Banking & Finance', 6850.0, 1.45, 0.285, 0.0068],
+  ['BAJAJFINSV', 'Bajaj Finserv Ltd', 'Bank', 'Banking & Finance', 1750.0, 0.92, 0.272, 0.0042],
+  ['INDUSINDBK', 'IndusInd Bank Ltd', 'Bank', 'Banking & Finance', 1350.0, -1.25, 0.334, -0.0015],
+
+  // 2. IT & Technology
+  ['TCS', 'Tata Consultancy Services Ltd', 'IT', 'IT & Technology', 4050.0, 1.48, 0.186, 0.0064],
+  ['INFY', 'Infosys Ltd', 'IT', 'IT & Technology', 1920.0, 1.05, 0.214, 0.0049],
+  ['HCLTECH', 'HCL Technologies Ltd', 'IT', 'IT & Technology', 1760.0, 0.72, 0.204, 0.0043],
+  ['WIPRO', 'Wipro Ltd', 'IT', 'IT & Technology', 520.0, -0.38, 0.236, 0.0006],
+  ['TECHM', 'Tech Mahindra Ltd', 'IT', 'IT & Technology', 1650.0, -0.92, 0.262, -0.0008],
+  ['LTIM', 'LTIMindtree Ltd', 'IT', 'IT & Technology', 5900.0, 0.31, 0.248, 0.0017],
+
+  // 3. Energy, Oil & Power
+  ['RELIANCE', 'Reliance Industries Ltd', 'Energy', 'Energy, Oil & Power', 1205.0, 1.24, 0.242, 0.0077],
+  ['ONGC', 'Oil & Natural Gas Corporation Ltd', 'Energy', 'Energy, Oil & Power', 285.0, -0.55, 0.284, 0.0009],
+  ['NTPC', 'NTPC Ltd', 'Energy', 'Energy, Oil & Power', 415.0, 0.88, 0.226, 0.0041],
+  ['POWERGRID', 'Power Grid Corporation of India', 'Energy', 'Energy, Oil & Power', 330.0, 0.42, 0.198, 0.0036],
+  ['COALINDIA', 'Coal India Ltd', 'Energy', 'Energy, Oil & Power', 485.0, 0.21, 0.254, 0.0011],
+  ['TATAPOWER', 'Tata Power Company Ltd', 'Energy', 'Energy, Oil & Power', 420.0, 1.36, 0.318, 0.0028],
+
+  // 4. Auto & EV
+  ['TATAMOTORS', 'Tata Motors Ltd', 'Auto', 'Auto & EV', 880.0, -1.24, 0.342, -0.0019],
+  ['M&M', 'Mahindra & Mahindra Ltd', 'Auto', 'Auto & EV', 2950.0, 1.62, 0.256, 0.0058],
+  ['MARUTI', 'Maruti Suzuki India Ltd', 'Auto', 'Auto & EV', 11800.0, 0.94, 0.218, 0.0046],
+  ['BAJAJ-AUTO', 'Bajaj Auto Ltd', 'Auto', 'Auto & EV', 9900.0, 0.48, 0.232, 0.0031],
+  ['EICHERMOT', 'Eicher Motors Ltd', 'Auto', 'Auto & EV', 4750.0, 0.76, 0.244, 0.0038],
+
+  // 5. Pharma & Healthcare
+  ['SUNPHARMA', 'Sun Pharmaceutical Industries Ltd', 'Pharma', 'Pharma & Healthcare', 1885.0, 0.68, 0.192, 0.0044],
+  ['DRREDDY', "Dr. Reddy's Laboratories Ltd", 'Pharma', 'Pharma & Healthcare', 6450.0, -0.26, 0.206, 0.0013],
+  ['CIPLA', 'Cipla Ltd', 'Pharma', 'Pharma & Healthcare', 1520.0, 0.54, 0.198, 0.0034],
+  ['APOLLOHOSP', 'Apollo Hospitals Enterprise Ltd', 'Pharma', 'Pharma & Healthcare', 6850.0, 0.36, 0.228, 0.0029],
+
+  // 6. FMCG & Consumer
+  ['ITC', 'ITC Ltd', 'FMCG', 'FMCG & Consumer', 488.0, 0.58, 0.176, 0.0032],
+  ['HINDUNILVR', 'Hindustan Unilever Ltd', 'FMCG', 'FMCG & Consumer', 2580.0, -0.44, 0.168, 0.0008],
+  ['TITAN', 'Titan Company Ltd', 'FMCG', 'FMCG & Consumer', 3450.0, 0.82, 0.235, 0.0045],
+  ['NESTLEIND', 'Nestle India Ltd', 'FMCG', 'FMCG & Consumer', 2350.0, -0.62, 0.172, -0.0006],
+  ['ASIANPAINT', 'Asian Paints Ltd', 'FMCG', 'FMCG & Consumer', 2980.0, -0.15, 0.224, 0.0012],
+
+  // 7. Metals, Infra & Telecom
+  ['LT', 'Larsen & Toubro Ltd', 'Metals', 'Metals, Infra & Telecom', 3540.0, 0.78, 0.228, 0.0041],
+  ['BHARTIARTL', 'Bharti Airtel Ltd', 'Metals', 'Metals, Infra & Telecom', 1690.0, 1.15, 0.215, 0.0055],
+  ['TATASTEEL', 'Tata Steel Ltd', 'Metals', 'Metals, Infra & Telecom', 155.0, -1.42, 0.326, -0.0016],
+  ['HINDALCO', 'Hindalco Industries Ltd', 'Metals', 'Metals, Infra & Telecom', 720.0, 1.34, 0.302, 0.0039],
+  ['ULTRACEMCO', 'UltraTech Cement Ltd', 'Metals', 'Metals, Infra & Telecom', 11200.0, 0.45, 0.212, 0.0028],
+
+  // 8. ETFs & Safe Hedge
+  ['NIFTYBEES', 'Nippon India ETF Nifty 50 BeES', 'ETF', 'ETFs & Hedge', 261.0, 0.58, 0.142, 0.0021],
+  ['BANKBEES', 'Nippon India ETF Nifty Bank BeES', 'ETF', 'ETFs & Hedge', 512.0, 0.71, 0.178, 0.0026],
+  ['ITBEES', 'Nippon India ETF Nifty IT', 'ETF', 'ETFs & Hedge', 435.0, 1.02, 0.196, 0.0031],
+  ['JUNIORBEES', 'Nippon India ETF Nifty Next 50', 'ETF', 'ETFs & Hedge', 745.0, 0.85, 0.185, 0.0028],
+  ['GOLDBEES', 'Nippon India ETF Gold BeES', 'ETF', 'ETFs & Hedge', 68.5, 0.18, 0.124, 0.0012],
+  ['LIQUIDBEES', 'Nippon India ETF Liquid BeES', 'ETF', 'ETFs & Hedge', 1000.0, 0.02, 0.004, 0.00025],
 ]
 
 export const STOCKS: Stock[] = RAW.map(([symbol, name, sector, sectorLabel, price, chg, vol, drift]) => {
@@ -295,5 +310,49 @@ export function forecast(
     confidence,
     signal,
     score,
+  }
+}
+
+/**
+ * Adapt real backend QuantForecastResponse into the UI Forecast format.
+ */
+export function adaptForecast(
+  qf: QuantForecastResponse,
+  fallbackHorizon: number,
+  currentPrice: number
+): Forecast {
+  const cm = qf.core_metrics
+  const gtt = qf.gtt_levels
+  const rec = qf.recommendation
+
+  let signal: Signal = 'Hold'
+  const v = (rec?.verdict || '').toUpperCase()
+  if (v.includes('STRONG') || (v.includes('BUY') && !v.includes('MODERATE'))) signal = 'Strong Buy'
+  else if (v.includes('MODERATE')) signal = 'Moderate Buy'
+  else if (v.includes('AVOID') || v.includes('SELL')) signal = 'Avoid'
+
+  const expRetPct = cm?.expected_return_pct ?? 2.1
+  const volPct = cm?.volatility_pct ?? 2.4
+  const annVolPct = cm?.annualized_vol_pct ?? (volPct * Math.sqrt(252 / (qf.horizon || fallbackHorizon)))
+  const cvarPct = cm?.cvar_95_pct ?? 3.2
+  const target = cm?.target_price ?? (currentPrice * (1 + expRetPct / 100))
+  const stop = gtt?.stop_loss_gtt ?? (currentPrice * (1 - Math.abs(cvarPct) / 100))
+
+  return {
+    horizon: qf.horizon ?? fallbackHorizon,
+    price: currentPrice,
+    expRet: expRetPct / 100,
+    sigmaH: volPct / 100,
+    swing: (volPct * 1.5) / 100,
+    tail: -Math.abs(cvarPct) / 100,
+    target,
+    stop,
+    rangeLo: currentPrice * (1 - volPct / 100),
+    rangeHi: currentPrice * (1 + volPct / 100),
+    annVol: annVolPct / 100,
+    rewardRisk: gtt?.reward_to_risk_ratio ?? 1.45,
+    confidence: Math.round(cm?.oos_hit_rate ?? 62),
+    signal,
+    score: rec?.signal_score ?? 72,
   }
 }

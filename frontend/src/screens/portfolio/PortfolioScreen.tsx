@@ -1,14 +1,16 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Download, Search, X, Check, SlidersHorizontal, Sparkles } from 'lucide-react'
 import {
   FEE_RATE,
   REGIME_META,
   STRATEGY_META,
   getBacktest,
+  adaptBacktest,
   type Action,
   type Portfolio,
   type Strategy,
 } from '@/data/portfolio'
+import type { PortfolioResponse } from '@/types'
 import { STOCKS, SECTORS, type Sector } from '@/data/market'
 import { Chip, Panel, Seg, Stat, TD, TH, type Tone } from '@/components/ui'
 import { cx, inr, inrSigned, num, pct } from '@/lib/format'
@@ -214,6 +216,7 @@ export function PortfolioScreen({
   onStrategyMode,
   selectedSymbols = null,
   onSelectSymbols,
+  rawPortfolioData,
 }: {
   portfolio: Portfolio
   horizon: number
@@ -222,10 +225,16 @@ export function PortfolioScreen({
   onStrategyMode?: (s: Strategy | 'auto') => void
   selectedSymbols?: string[] | null
   onSelectSymbols?: (symbols: string[] | null) => void
+  rawPortfolioData?: PortfolioResponse | null
 }) {
   const [view, setView] = useState<'wealth' | 'drawdown'>('wealth')
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false)
-  const bt = getBacktest()
+  const bt = useMemo(() => {
+    if (rawPortfolioData) {
+      return adaptBacktest(rawPortfolioData)
+    }
+    return getBacktest()
+  }, [rawPortfolioData])
   const { capital, strategy } = portfolio
   const regime = REGIME_META[portfolio.regime]
   const active = bt.stats.find((s) => s.key === strategy)!

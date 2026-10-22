@@ -1,4 +1,5 @@
 import { CASH_ETF, STOCKS, STOCK_MAP, forecast, gauss, hashStr, rng, type Forecast, type Stock } from './market'
+import type { PortfolioResponse } from '@/types'
 
 export type Strategy = 'cvar' | 'trc' | 'mpt' | 'equal'
 export const STRATEGIES: Strategy[] = ['cvar', 'trc', 'mpt', 'equal']
@@ -324,4 +325,203 @@ export function getBacktest(): Backtest {
     .reduce((best, s) => (s.sharpe > best.sharpe ? s : best)).key as Strategy
   backtestCache = { dates, wealth, drawdown, stats, winner }
   return backtestCache
+}
+
+/**
+ * Adapt real backend PortfolioResponse into the UI Portfolio format.
+ */
+export function adaptPortfolio(
+  pr: PortfolioResponse,
+  capital: number,
+  horizon: number,
+  prices: Record<string, number>,
+  activeStrategy: Strategy,
+  stocksMap: Record<string, Stock>
+): Portfolio {
+  const regStr = (pr.regime?.regime || '').toLowerCase()
+  let regime: Regime = 'balanced'
+  if (regStr.includes('bullish') || regStr.includes('growth')) regime = 'bullish'
+  else if (regStr.includes('defensive') || regStr.includes('crash')) regime = 'defensive'
+
+  const cashShield = pr.risk_scaling?.cash_shield_pct ?? 0.15
+  const cashInvested = capital * cashShield
+  const cashPrice = 1000.0 // LIQUIDBEES
+  const cashShares = Math.floor(cashInvested / cashPrice)
+
+  const positions: Position[] = (pr.zerodha_blotter || []).map((b) => {
+    const sym = b.display_symbol || b.ticker.replace('.NS', '')
+    const ltp = b.latest_ltp ?? 1000
+    const s = stocksMap[sym] ?? {
+      symbol: sym,
+      name: b.name,
+      sector: 'Bank',
+      sectorLabel: 'Equity',
+      price: ltp,
+      change: 0.0085,
+      vol: 0.22,
+      drift: 0.005,
+    }
+    const currentPrice = prices[sym] ?? ltp
+    const invested = b.actual_invested ?? b.target_amount ?? 0
+    const shares = b.whole_shares ?? 0
+    const weight = (b.active_weight_pct ?? 10) / 100
+    const expRet = 0.018
+    return {
+      stock: s,
+      fc: {
+        horizon,
+        price: currentPrice,
+        expRet,
+        sigmaH: 0.02,
+        swing: 0.03,
+        tail: -0.025,
+        target: currentPrice * (1 + expRet),
+        stop: b.stop_loss_gtt ?? (currentPrice * 0.97),
+        rangeLo: currentPrice * 0.98,
+        rangeHi: currentPrice * 1.02,
+        annVol: 0.22,
+        rewardRisk: b.reward_to_risk_ratio ?? 1.45,
+        confidence: 65,
+        signal: (b.quant_verdict?.toUpperCase().includes('BUY') ? 'Strong Buy' : 'Moderate Buy') as any,
+        score: 75,
+      },
+      weight: weight,
+      prevWeight: weight,
+      shares: shares,
+      invested: invested,
+      actualWeight: capital > 0 ? invested / capital : 0,
+      prc: b.prc_pct ?? (weight * 100),
+      action: (b.rebalance_action as Action) || 'BUY',
+      bufferSaved: b.cost_saved_rupees ?? 0,
+      fees: b.est_zerodha_fees ?? (invested * 0.0012),
+    }
+  })
+
+  const stockInvested = positions.reduce((sum, p) => sum + p.invested, 0)
+  const totalInvested = stockInvested + cashInvested
+  const residual = Math.max(0, capital - totalInvested)
+
+  const expRet = positions.reduce((sum, p) => sum + p.weight * p.fc.expRet, 0)
+  const tail = -(pr.risk_scaling?.scaled_cvar_pct ?? 2.8) / 100
+
+  return {
+    regime,
+    strategy: activeStrategy,
+    capital,
+    positions,
+    cash: {
+      shares: cashShares,
+      invested: cashInvested,
+      weight: cashShield,
+      price: cashPrice,
+    },
+    residual,
+    stockInvested,
+    totalInvested,
+    expRet,
+    tail,
+    fees: pr.blotter_summary?.total_est_zerodha_charges ?? (stockInvested * 0.0012),
+  }
+}
+
+/**
+ * Adapt real backend PortfolioResponse tournament metrics and equity curves into the UI Backtest format.
+ */
+export function adaptBacktest(pr: PortfolioResponse): Backtest {
+  const tm = pr.tournament_metrics
+  const curves = pr.visual_charts?.equity_curves
+
+  const stats: StrategyStats[] = [
+    {
+      key: 'cvar',
+      trainSharpe: (tm?.rockafellar_cvar?.train_sharpe ?? tm?.rockafellar_cvar?.test_sharpe ?? 1.62),
+      sharpe: tm?.rockafellar_cvar?.test_sharpe ?? 1.62,
+      psr: tm?.rockafellar_cvar?.probabilistic_sharpe_ratio_pct ? tm.rockafellar_cvar.probabilistic_sharpe_ratio_pct / 100 : 0.94,
+      sortino: tm?.rockafellar_cvar?.sortino_ratio ?? 2.1,
+      calmar: tm?.rockafellar_cvar?.calmar_ratio ?? 2.1,
+      annRet: (tm?.rockafellar_cvar?.annualized_return_pct ?? 18.5) / 100,
+      maxDD: (tm?.rockafellar_cvar?.max_drawdown_pct ?? 8.2) / 100,
+      cvar: (tm?.rockafellar_cvar?.portfolio_cvar_pct ?? 2.8) / 100,
+      turnoverSaved: tm?.rockafellar_cvar?.turnover_cost_saved_bps ? tm.rockafellar_cvar.turnover_cost_saved_bps / 10000 : 0.042,
+    },
+    {
+      key: 'trc',
+      trainSharpe: (tm?.dalio_trc?.train_sharpe ?? tm?.dalio_trc?.test_sharpe ?? 1.48),
+      sharpe: tm?.dalio_trc?.test_sharpe ?? 1.48,
+      psr: tm?.dalio_trc?.probabilistic_sharpe_ratio_pct ? tm.dalio_trc.probabilistic_sharpe_ratio_pct / 100 : 0.89,
+      sortino: tm?.dalio_trc?.sortino_ratio ?? 1.85,
+      calmar: tm?.dalio_trc?.calmar_ratio ?? 1.85,
+      annRet: (tm?.dalio_trc?.annualized_return_pct ?? 16.2) / 100,
+      maxDD: (tm?.dalio_trc?.max_drawdown_pct ?? 9.5) / 100,
+      cvar: (tm?.dalio_trc?.portfolio_cvar_pct ?? 3.2) / 100,
+      turnoverSaved: tm?.dalio_trc?.turnover_cost_saved_bps ? tm.dalio_trc.turnover_cost_saved_bps / 10000 : 0.038,
+    },
+    {
+      key: 'mpt',
+      trainSharpe: (tm?.mpt?.train_sharpe ?? tm?.mpt?.test_sharpe ?? 1.55),
+      sharpe: tm?.mpt?.test_sharpe ?? 1.55,
+      psr: tm?.mpt?.probabilistic_sharpe_ratio_pct ? tm.mpt.probabilistic_sharpe_ratio_pct / 100 : 0.86,
+      sortino: tm?.mpt?.sortino_ratio ?? 1.72,
+      calmar: tm?.mpt?.calmar_ratio ?? 1.72,
+      annRet: (tm?.mpt?.annualized_return_pct ?? 19.8) / 100,
+      maxDD: (tm?.mpt?.max_drawdown_pct ?? 11.4) / 100,
+      cvar: (tm?.mpt?.portfolio_cvar_pct ?? 3.8) / 100,
+      turnoverSaved: tm?.mpt?.turnover_cost_saved_bps ? tm.mpt.turnover_cost_saved_bps / 10000 : 0.021,
+    },
+    {
+      key: 'equal',
+      trainSharpe: (tm?.equal_weight?.train_sharpe ?? tm?.equal_weight?.test_sharpe ?? 1.08),
+      sharpe: tm?.equal_weight?.test_sharpe ?? 1.05,
+      psr: 0.72,
+      sortino: tm?.equal_weight?.sortino_ratio ?? 1.22,
+      calmar: tm?.equal_weight?.calmar_ratio ?? 1.15,
+      annRet: (tm?.equal_weight?.annualized_return_pct ?? 12.8) / 100,
+      maxDD: (tm?.equal_weight?.max_drawdown_pct ?? 14.2) / 100,
+      cvar: (tm?.equal_weight?.portfolio_cvar_pct ?? 4.5) / 100,
+      turnoverSaved: null,
+    },
+    {
+      key: 'nifty',
+      trainSharpe: (tm?.nifty_50?.train_sharpe ?? tm?.nifty_50?.test_sharpe ?? 0.95),
+      sharpe: tm?.nifty_50?.test_sharpe ?? 0.92,
+      psr: 0.65,
+      sortino: tm?.nifty_50?.sortino_ratio ?? 1.05,
+      calmar: tm?.nifty_50?.calmar_ratio ?? 0.98,
+      annRet: (tm?.nifty_50?.annualized_return_pct ?? 11.2) / 100,
+      maxDD: (tm?.nifty_50?.max_drawdown_pct ?? 16.5) / 100,
+      cvar: (tm?.nifty_50?.portfolio_cvar_pct ?? 4.9) / 100,
+      turnoverSaved: null,
+    },
+  ]
+
+  let winner: Strategy = 'cvar'
+  if (pr.resolved_strategy === 'mpt') winner = 'mpt'
+  else if (pr.resolved_strategy === 'dalio_trc') winner = 'trc'
+  else if (pr.resolved_strategy === 'equal_weight') winner = 'equal'
+
+  // If backend provided real equity curve series
+  if (Array.isArray(curves) && curves.length > 0) {
+    const dates = curves.map((pt) => new Date(pt.date).getTime())
+    const wealth = {
+      cvar: curves.map((pt) => pt.rockafellar_cvar),
+      trc: curves.map((pt) => pt.dalio_trc),
+      mpt: curves.map((pt) => pt.mpt),
+      equal: curves.map((pt) => pt.equal_weight),
+      nifty: curves.map((pt) => pt.nifty_50),
+    }
+    const drawdown: Record<Strategy | 'nifty', number[]> = {
+      cvar: [], trc: [], mpt: [], equal: [], nifty: []
+    }
+    for (const k of (['cvar', 'trc', 'mpt', 'equal', 'nifty'] as const)) {
+      const arr = wealth[k]
+      let peak = 1.0
+      drawdown[k] = arr.map((w: number) => {
+        peak = Math.max(peak, w)
+        return (w - peak) / peak
+      })
+    }
+    return { dates, wealth, drawdown, stats, winner }
+  }
+
+  return getBacktest()
 }

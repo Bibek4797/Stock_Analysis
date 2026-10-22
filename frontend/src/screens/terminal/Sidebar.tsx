@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
-import { SECTORS, STOCKS, type Sector } from '@/data/market'
+import { SECTORS, STOCKS, type Sector, type Stock } from '@/data/market'
 import { Label, Seg } from '@/components/ui'
 import { clamp, cx, num, pct } from '@/lib/format'
 
@@ -20,6 +20,7 @@ export function Sidebar({
   symbol,
   onSymbol,
   prices,
+  stocks,
 }: {
   capital: number
   onCapital: (v: number) => void
@@ -28,6 +29,7 @@ export function Sidebar({
   symbol: string
   onSymbol: (s: string) => void
   prices: Record<string, number>
+  stocks?: Stock[]
 }) {
   const [query, setQuery] = useState('')
   const [sector, setSector] = useState<'All' | Sector>('All')
@@ -36,14 +38,15 @@ export function Sidebar({
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return STOCKS.filter(
+    const pool = stocks && stocks.length > 0 ? stocks : STOCKS
+    return pool.filter(
       (s) =>
         (sector === 'All' || s.sector === sector) &&
         (!q ||
           s.symbol.toLowerCase().includes(q) ||
           s.name.toLowerCase().includes(q)),
     )
-  }, [query, sector])
+  }, [query, sector, stocks])
 
   const commitCapital = () => {
     if (capitalText === null) return

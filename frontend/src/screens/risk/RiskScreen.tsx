@@ -5,12 +5,14 @@ import {
   RETURN_NAMES,
   VOL_NAMES,
   getValidation,
+  adaptValidation,
   type FeatureSet,
   type ReturnKey,
   type ReturnModelSel,
   type RiskModelSel,
   type VolKey,
 } from '@/data/validation'
+import type { QuantForecastResponse } from '@/types'
 import { Chip, Field, Panel, Seg, Select, Stat, TD, TH } from '@/components/ui'
 import { SIGNAL_TONE } from '../terminal/OutlookPanel'
 import { cx, inr, pct } from '@/lib/format'
@@ -61,6 +63,7 @@ export function RiskScreen({
   onVolModelChange,
   refit = 0,
   onRefit,
+  rawQuantForecast,
 }: {
   stock: Stock
   price: number
@@ -75,6 +78,7 @@ export function RiskScreen({
   onVolModelChange?: (m: RiskModelSel) => void
   refit?: number
   onRefit?: () => void
+  rawQuantForecast?: QuantForecastResponse | null
 }) {
   const [localFeature, setLocalFeature] = useState<FeatureSet>(feature)
   const [localRetSel, setLocalRetSel] = useState<ReturnModelSel>(returnModel)
@@ -98,10 +102,12 @@ export function RiskScreen({
     onVolModelChange?.(m)
   }
 
-  const v = useMemo(
-    () => getValidation(stock.symbol, horizon, activeFeature, refit),
-    [stock.symbol, horizon, activeFeature, refit],
-  )
+  const v = useMemo(() => {
+    if (rawQuantForecast) {
+      return adaptValidation(rawQuantForecast, stock, price)
+    }
+    return getValidation(stock.symbol, horizon, activeFeature, refit)
+  }, [rawQuantForecast, stock, price, horizon, activeFeature, refit])
   const retKey: ReturnKey = activeRetSel === 'auto' ? v.returnWinner : activeRetSel
   const volKey: VolKey = activeRiskSel === 'auto' ? v.volWinner : activeRiskSel
   const ret = v.returns.find((r) => r.key === retKey)!

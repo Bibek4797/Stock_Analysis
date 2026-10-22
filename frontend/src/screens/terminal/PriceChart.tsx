@@ -89,10 +89,12 @@ export function PriceChart({
   stock,
   price,
   fc,
+  bars: customBars,
 }: {
   stock: Stock
   price: number
   fc: Forecast
+  bars?: Bar[]
 }) {
   const [range, setRange] = useState<Range>('6M')
   const [mode, setMode] = useState<'candles' | 'line'>('candles')
@@ -103,7 +105,7 @@ export function PriceChart({
   const [ref, { width, height }] = useSize<HTMLDivElement>()
 
   const bars = useMemo<Agg[]>(() => {
-    const hist = getHistory(stock.symbol)
+    const hist = customBars && customBars.length > 0 ? customBars : getHistory(stock.symbol)
     const last = hist[hist.length - 1]
     const full = [
       ...hist.slice(0, -1),
@@ -136,7 +138,7 @@ export function PriceChart({
       })
     }
     return out.reverse()
-  }, [stock.symbol, price, range])
+  }, [stock.symbol, price, range, customBars])
 
   const H = fc.horizon
   const dv = stock.vol / Math.sqrt(252)
