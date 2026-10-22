@@ -7,6 +7,7 @@ export interface UniverseItem {
   is_tradable: boolean;
   group?: 'equities' | 'etfs' | 'benchmarks';
   base_price?: number;
+  change_pct?: number;
   exchange?: string;
   currency?: string;
 }

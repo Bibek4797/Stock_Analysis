@@ -111,13 +111,14 @@ export default function App() {
             else if (s.includes('ETF') || s.includes('Hedge')) sec = 'ETF'
 
             const p = item.base_price ?? 1000.0
+            const chg = item.change_pct !== undefined ? item.change_pct / 100 : 0.005
             return {
               symbol: sym,
               name: item.name,
               sector: sec,
               sectorLabel: item.sector,
               price: p,
-              change: 0.0085,
+              change: chg,
               vol: 0.22,
               drift: 0.005,
             }

@@ -802,7 +802,7 @@ def run_portfolio_engine(
         tradable_universe_tickers = [
             "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "ICICIBANK.NS", "INFY.NS",
             "SBIN.NS", "BHARTIARTL.NS", "LT.NS", "ITC.NS", "SUNPHARMA.NS",
-            "TATAMOTORS.NS", "M&M.NS", "MARUTI.NS", "BAJFINANCE.NS", "TITAN.NS",
+            "HEROMOTOCO.NS", "M&M.NS", "MARUTI.NS", "BAJFINANCE.NS", "TITAN.NS",
             "HINDUNILVR.NS", "NTPC.NS", "ONGC.NS", "TATASTEEL.NS", "COALINDIA.NS",
             "NIFTYBEES.NS", "BANKBEES.NS", "ITBEES.NS", "JUNIORBEES.NS", "GOLDBEES.NS"
         ]

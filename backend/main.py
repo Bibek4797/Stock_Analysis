@@ -39,70 +39,70 @@ app.add_middleware(
 UNIVERSE_CONFIG = {
     "equities": [
         # 1. Banking & Finance (8)
-        {"symbol": "HDFCBANK.NS", "display_symbol": "HDFCBANK", "name": "HDFC Bank Ltd", "sector": "Banking & Finance", "category": "EQ", "is_tradable": True, "base_price": 1680.0},
-        {"symbol": "ICICIBANK.NS", "display_symbol": "ICICIBANK", "name": "ICICI Bank Ltd", "sector": "Banking & Finance", "category": "EQ", "is_tradable": True, "base_price": 1245.0},
-        {"symbol": "SBIN.NS", "display_symbol": "SBIN", "name": "State Bank of India", "sector": "Banking & Finance", "category": "EQ", "is_tradable": True, "base_price": 795.0},
-        {"symbol": "KOTAKBANK.NS", "display_symbol": "KOTAKBANK", "name": "Kotak Mahindra Bank Ltd", "sector": "Banking & Finance", "category": "EQ", "is_tradable": True, "base_price": 1780.0},
-        {"symbol": "AXISBANK.NS", "display_symbol": "AXISBANK", "name": "Axis Bank Ltd", "sector": "Banking & Finance", "category": "EQ", "is_tradable": True, "base_price": 1180.0},
-        {"symbol": "BAJFINANCE.NS", "display_symbol": "BAJFINANCE", "name": "Bajaj Finance Ltd", "sector": "Banking & Finance", "category": "EQ", "is_tradable": True, "base_price": 6850.0},
-        {"symbol": "BAJAJFINSV.NS", "display_symbol": "BAJAJFINSV", "name": "Bajaj Finserv Ltd", "sector": "Banking & Finance", "category": "EQ", "is_tradable": True, "base_price": 1750.0},
-        {"symbol": "INDUSINDBK.NS", "display_symbol": "INDUSINDBK", "name": "IndusInd Bank Ltd", "sector": "Banking & Finance", "category": "EQ", "is_tradable": True, "base_price": 1350.0},
+        {"symbol": "HDFCBANK.NS", "display_symbol": "HDFCBANK", "name": "HDFC Bank Ltd", "sector": "Banking & Finance", "category": "EQ", "is_tradable": True, "base_price": 693.15, "change_pct": -1.95},
+        {"symbol": "ICICIBANK.NS", "display_symbol": "ICICIBANK", "name": "ICICI Bank Ltd", "sector": "Banking & Finance", "category": "EQ", "is_tradable": True, "base_price": 1393.0, "change_pct": 0.58},
+        {"symbol": "SBIN.NS", "display_symbol": "SBIN", "name": "State Bank of India", "sector": "Banking & Finance", "category": "EQ", "is_tradable": True, "base_price": 966.0, "change_pct": 0.31},
+        {"symbol": "KOTAKBANK.NS", "display_symbol": "KOTAKBANK", "name": "Kotak Mahindra Bank Ltd", "sector": "Banking & Finance", "category": "EQ", "is_tradable": True, "base_price": 437.1, "change_pct": -0.16},
+        {"symbol": "AXISBANK.NS", "display_symbol": "AXISBANK", "name": "Axis Bank Ltd", "sector": "Banking & Finance", "category": "EQ", "is_tradable": True, "base_price": 1205.6, "change_pct": -0.36},
+        {"symbol": "BAJFINANCE.NS", "display_symbol": "BAJFINANCE", "name": "Bajaj Finance Ltd", "sector": "Banking & Finance", "category": "EQ", "is_tradable": True, "base_price": 932.6, "change_pct": 0.71},
+        {"symbol": "BAJAJFINSV.NS", "display_symbol": "BAJAJFINSV", "name": "Bajaj Finserv Ltd", "sector": "Banking & Finance", "category": "EQ", "is_tradable": True, "base_price": 1674.0, "change_pct": -0.95},
+        {"symbol": "INDUSINDBK.NS", "display_symbol": "INDUSINDBK", "name": "IndusInd Bank Ltd", "sector": "Banking & Finance", "category": "EQ", "is_tradable": True, "base_price": 846.65, "change_pct": -0.34},
 
         # 2. IT & Technology (6)
-        {"symbol": "TCS.NS", "display_symbol": "TCS", "name": "Tata Consultancy Services Ltd", "sector": "IT & Technology", "category": "EQ", "is_tradable": True, "base_price": 4050.0},
-        {"symbol": "INFY.NS", "display_symbol": "INFY", "name": "Infosys Ltd", "sector": "IT & Technology", "category": "EQ", "is_tradable": True, "base_price": 1920.0},
-        {"symbol": "HCLTECH.NS", "display_symbol": "HCLTECH", "name": "HCL Technologies Ltd", "sector": "IT & Technology", "category": "EQ", "is_tradable": True, "base_price": 1760.0},
-        {"symbol": "WIPRO.NS", "display_symbol": "WIPRO", "name": "Wipro Ltd", "sector": "IT & Technology", "category": "EQ", "is_tradable": True, "base_price": 520.0},
-        {"symbol": "TECHM.NS", "display_symbol": "TECHM", "name": "Tech Mahindra Ltd", "sector": "IT & Technology", "category": "EQ", "is_tradable": True, "base_price": 1650.0},
-        {"symbol": "LTIM.NS", "display_symbol": "LTIM", "name": "LTIMindtree Ltd", "sector": "IT & Technology", "category": "EQ", "is_tradable": True, "base_price": 5900.0},
+        {"symbol": "TCS.NS", "display_symbol": "TCS", "name": "Tata Consultancy Services Ltd", "sector": "IT & Technology", "category": "EQ", "is_tradable": True, "base_price": 2504.7, "change_pct": -0.96},
+        {"symbol": "INFY.NS", "display_symbol": "INFY", "name": "Infosys Ltd", "sector": "IT & Technology", "category": "EQ", "is_tradable": True, "base_price": 1149.95, "change_pct": -1.55},
+        {"symbol": "HCLTECH.NS", "display_symbol": "HCLTECH", "name": "HCL Technologies Ltd", "sector": "IT & Technology", "category": "EQ", "is_tradable": True, "base_price": 1409.6, "change_pct": -1.03},
+        {"symbol": "WIPRO.NS", "display_symbol": "WIPRO", "name": "Wipro Ltd", "sector": "IT & Technology", "category": "EQ", "is_tradable": True, "base_price": 189.81, "change_pct": 0.34},
+        {"symbol": "TECHM.NS", "display_symbol": "TECHM", "name": "Tech Mahindra Ltd", "sector": "IT & Technology", "category": "EQ", "is_tradable": True, "base_price": 1794.9, "change_pct": -2.17},
+        {"symbol": "PERSISTENT.NS", "display_symbol": "PERSISTENT", "name": "Persistent Systems Ltd", "sector": "IT & Technology", "category": "EQ", "is_tradable": True, "base_price": 5741.0, "change_pct": -2.01},
 
         # 3. Energy, Oil & Power (6)
-        {"symbol": "RELIANCE.NS", "display_symbol": "RELIANCE", "name": "Reliance Industries Ltd", "sector": "Energy, Oil & Power", "category": "EQ", "is_tradable": True, "base_price": 1205.0},
-        {"symbol": "ONGC.NS", "display_symbol": "ONGC", "name": "Oil & Natural Gas Corporation Ltd", "sector": "Energy, Oil & Power", "category": "EQ", "is_tradable": True, "base_price": 285.0},
-        {"symbol": "NTPC.NS", "display_symbol": "NTPC", "name": "NTPC Ltd", "sector": "Energy, Oil & Power", "category": "EQ", "is_tradable": True, "base_price": 415.0},
-        {"symbol": "POWERGRID.NS", "display_symbol": "POWERGRID", "name": "Power Grid Corporation of India", "sector": "Energy, Oil & Power", "category": "EQ", "is_tradable": True, "base_price": 330.0},
-        {"symbol": "COALINDIA.NS", "display_symbol": "COALINDIA", "name": "Coal India Ltd", "sector": "Energy, Oil & Power", "category": "EQ", "is_tradable": True, "base_price": 485.0},
-        {"symbol": "TATAPOWER.NS", "display_symbol": "TATAPOWER", "name": "Tata Power Company Ltd", "sector": "Energy, Oil & Power", "category": "EQ", "is_tradable": True, "base_price": 420.0},
+        {"symbol": "RELIANCE.NS", "display_symbol": "RELIANCE", "name": "Reliance Industries Ltd", "sector": "Energy, Oil & Power", "category": "EQ", "is_tradable": True, "base_price": 1187.7, "change_pct": -1.76},
+        {"symbol": "ONGC.NS", "display_symbol": "ONGC", "name": "Oil & Natural Gas Corporation Ltd", "sector": "Energy, Oil & Power", "category": "EQ", "is_tradable": True, "base_price": 225.35, "change_pct": -0.12},
+        {"symbol": "NTPC.NS", "display_symbol": "NTPC", "name": "NTPC Ltd", "sector": "Energy, Oil & Power", "category": "EQ", "is_tradable": True, "base_price": 300.7, "change_pct": -0.76},
+        {"symbol": "POWERGRID.NS", "display_symbol": "POWERGRID", "name": "Power Grid Corporation of India", "sector": "Energy, Oil & Power", "category": "EQ", "is_tradable": True, "base_price": 247.05, "change_pct": -2.02},
+        {"symbol": "COALINDIA.NS", "display_symbol": "COALINDIA", "name": "Coal India Ltd", "sector": "Energy, Oil & Power", "category": "EQ", "is_tradable": True, "base_price": 399.2, "change_pct": -2.04},
+        {"symbol": "TATAPOWER.NS", "display_symbol": "TATAPOWER", "name": "Tata Power Company Ltd", "sector": "Energy, Oil & Power", "category": "EQ", "is_tradable": True, "base_price": 351.2, "change_pct": -0.23},
 
         # 4. Auto & EV (5)
-        {"symbol": "TATAMOTORS.NS", "display_symbol": "TATAMOTORS", "name": "Tata Motors Ltd", "sector": "Auto & EV", "category": "EQ", "is_tradable": True, "base_price": 880.0},
-        {"symbol": "M&M.NS", "display_symbol": "M&M", "name": "Mahindra & Mahindra Ltd", "sector": "Auto & EV", "category": "EQ", "is_tradable": True, "base_price": 2950.0},
-        {"symbol": "MARUTI.NS", "display_symbol": "MARUTI", "name": "Maruti Suzuki India Ltd", "sector": "Auto & EV", "category": "EQ", "is_tradable": True, "base_price": 11800.0},
-        {"symbol": "BAJAJ-AUTO.NS", "display_symbol": "BAJAJ-AUTO", "name": "Bajaj Auto Ltd", "sector": "Auto & EV", "category": "EQ", "is_tradable": True, "base_price": 9900.0},
-        {"symbol": "EICHERMOT.NS", "display_symbol": "EICHERMOT", "name": "Eicher Motors Ltd", "sector": "Auto & EV", "category": "EQ", "is_tradable": True, "base_price": 4750.0},
+        {"symbol": "HEROMOTOCO.NS", "display_symbol": "HEROMOTOCO", "name": "Hero MotoCorp Ltd", "sector": "Auto & EV", "category": "EQ", "is_tradable": True, "base_price": 5133.0, "change_pct": -0.40},
+        {"symbol": "M&M.NS", "display_symbol": "M&M", "name": "Mahindra & Mahindra Ltd", "sector": "Auto & EV", "category": "EQ", "is_tradable": True, "base_price": 2851.0, "change_pct": -1.32},
+        {"symbol": "MARUTI.NS", "display_symbol": "MARUTI", "name": "Maruti Suzuki India Ltd", "sector": "Auto & EV", "category": "EQ", "is_tradable": True, "base_price": 11118.0, "change_pct": -0.73},
+        {"symbol": "BAJAJ-AUTO.NS", "display_symbol": "BAJAJ-AUTO", "name": "Bajaj Auto Ltd", "sector": "Auto & EV", "category": "EQ", "is_tradable": True, "base_price": 10129.0, "change_pct": 0.57},
+        {"symbol": "EICHERMOT.NS", "display_symbol": "EICHERMOT", "name": "Eicher Motors Ltd", "sector": "Auto & EV", "category": "EQ", "is_tradable": True, "base_price": 7049.0, "change_pct": -1.69},
 
         # 5. Pharma & Healthcare (4)
-        {"symbol": "SUNPHARMA.NS", "display_symbol": "SUNPHARMA", "name": "Sun Pharmaceutical Industries Ltd", "sector": "Pharma & Healthcare", "category": "EQ", "is_tradable": True, "base_price": 1885.0},
-        {"symbol": "DRREDDY.NS", "display_symbol": "DRREDDY", "name": "Dr. Reddy's Laboratories Ltd", "sector": "Pharma & Healthcare", "category": "EQ", "is_tradable": True, "base_price": 6450.0},
-        {"symbol": "CIPLA.NS", "display_symbol": "CIPLA", "name": "Cipla Ltd", "sector": "Pharma & Healthcare", "category": "EQ", "is_tradable": True, "base_price": 1520.0},
-        {"symbol": "APOLLOHOSP.NS", "display_symbol": "APOLLOHOSP", "name": "Apollo Hospitals Enterprise Ltd", "sector": "Pharma & Healthcare", "category": "EQ", "is_tradable": True, "base_price": 6850.0},
+        {"symbol": "SUNPHARMA.NS", "display_symbol": "SUNPHARMA", "name": "Sun Pharmaceutical Industries Ltd", "sector": "Pharma & Healthcare", "category": "EQ", "is_tradable": True, "base_price": 1745.8, "change_pct": 0.04},
+        {"symbol": "DRREDDY.NS", "display_symbol": "DRREDDY", "name": "Dr. Reddy's Laboratories Ltd", "sector": "Pharma & Healthcare", "category": "EQ", "is_tradable": True, "base_price": 1233.7, "change_pct": -0.87},
+        {"symbol": "CIPLA.NS", "display_symbol": "CIPLA", "name": "Cipla Ltd", "sector": "Pharma & Healthcare", "category": "EQ", "is_tradable": True, "base_price": 1322.5, "change_pct": 0.65},
+        {"symbol": "APOLLOHOSP.NS", "display_symbol": "APOLLOHOSP", "name": "Apollo Hospitals Enterprise Ltd", "sector": "Pharma & Healthcare", "category": "EQ", "is_tradable": True, "base_price": 7598.0, "change_pct": -0.03},
 
         # 6. FMCG & Consumer (5)
-        {"symbol": "ITC.NS", "display_symbol": "ITC", "name": "ITC Ltd", "sector": "FMCG & Consumer", "category": "EQ", "is_tradable": True, "base_price": 488.0},
-        {"symbol": "HINDUNILVR.NS", "display_symbol": "HINDUNILVR", "name": "Hindustan Unilever Ltd", "sector": "FMCG & Consumer", "category": "EQ", "is_tradable": True, "base_price": 2580.0},
-        {"symbol": "TITAN.NS", "display_symbol": "TITAN", "name": "Titan Company Ltd", "sector": "FMCG & Consumer", "category": "EQ", "is_tradable": True, "base_price": 3450.0},
-        {"symbol": "NESTLEIND.NS", "display_symbol": "NESTLEIND", "name": "Nestle India Ltd", "sector": "FMCG & Consumer", "category": "EQ", "is_tradable": True, "base_price": 2350.0},
-        {"symbol": "ASIANPAINT.NS", "display_symbol": "ASIANPAINT", "name": "Asian Paints Ltd", "sector": "FMCG & Consumer", "category": "EQ", "is_tradable": True, "base_price": 2980.0},
+        {"symbol": "ITC.NS", "display_symbol": "ITC", "name": "ITC Ltd", "sector": "FMCG & Consumer", "category": "EQ", "is_tradable": True, "base_price": 257.55, "change_pct": -1.7},
+        {"symbol": "HINDUNILVR.NS", "display_symbol": "HINDUNILVR", "name": "Hindustan Unilever Ltd", "sector": "FMCG & Consumer", "category": "EQ", "is_tradable": True, "base_price": 1817.2, "change_pct": -1.78},
+        {"symbol": "TITAN.NS", "display_symbol": "TITAN", "name": "Titan Company Ltd", "sector": "FMCG & Consumer", "category": "EQ", "is_tradable": True, "base_price": 4305.6, "change_pct": -1.72},
+        {"symbol": "NESTLEIND.NS", "display_symbol": "NESTLEIND", "name": "Nestle India Ltd", "sector": "FMCG & Consumer", "category": "EQ", "is_tradable": True, "base_price": 1187.1, "change_pct": -3.01},
+        {"symbol": "ASIANPAINT.NS", "display_symbol": "ASIANPAINT", "name": "Asian Paints Ltd", "sector": "FMCG & Consumer", "category": "EQ", "is_tradable": True, "base_price": 2297.2, "change_pct": -0.96},
 
         # 7. Metals, Infra & Telecom (5)
-        {"symbol": "LT.NS", "display_symbol": "LT", "name": "Larsen & Toubro Ltd", "sector": "Metals, Infra & Telecom", "category": "EQ", "is_tradable": True, "base_price": 3540.0},
-        {"symbol": "BHARTIARTL.NS", "display_symbol": "BHARTIARTL", "name": "Bharti Airtel Ltd", "sector": "Metals, Infra & Telecom", "category": "EQ", "is_tradable": True, "base_price": 1690.0},
-        {"symbol": "TATASTEEL.NS", "display_symbol": "TATASTEEL", "name": "Tata Steel Ltd", "sector": "Metals, Infra & Telecom", "category": "EQ", "is_tradable": True, "base_price": 155.0},
-        {"symbol": "HINDALCO.NS", "display_symbol": "HINDALCO", "name": "Hindalco Industries Ltd", "sector": "Metals, Infra & Telecom", "category": "EQ", "is_tradable": True, "base_price": 720.0},
-        {"symbol": "ULTRACEMCO.NS", "display_symbol": "ULTRACEMCO", "name": "UltraTech Cement Ltd", "sector": "Metals, Infra & Telecom", "category": "EQ", "is_tradable": True, "base_price": 11200.0},
+        {"symbol": "LT.NS", "display_symbol": "LT", "name": "Larsen & Toubro Ltd", "sector": "Metals, Infra & Telecom", "category": "EQ", "is_tradable": True, "base_price": 3649.4, "change_pct": 0.37},
+        {"symbol": "BHARTIARTL.NS", "display_symbol": "BHARTIARTL", "name": "Bharti Airtel Ltd", "sector": "Metals, Infra & Telecom", "category": "EQ", "is_tradable": True, "base_price": 1903.3, "change_pct": 0.61},
+        {"symbol": "TATASTEEL.NS", "display_symbol": "TATASTEEL", "name": "Tata Steel Ltd", "sector": "Metals, Infra & Telecom", "category": "EQ", "is_tradable": True, "base_price": 170.81, "change_pct": -0.95},
+        {"symbol": "HINDALCO.NS", "display_symbol": "HINDALCO", "name": "Hindalco Industries Ltd", "sector": "Metals, Infra & Telecom", "category": "EQ", "is_tradable": True, "base_price": 888.75, "change_pct": -0.46},
+        {"symbol": "ULTRACEMCO.NS", "display_symbol": "ULTRACEMCO", "name": "UltraTech Cement Ltd", "sector": "Metals, Infra & Telecom", "category": "EQ", "is_tradable": True, "base_price": 10918.0, "change_pct": 0.64},
     ],
     "etfs": [
         # 8. Tradable ETFs & Cash Hedge (6)
-        {"symbol": "NIFTYBEES.NS", "display_symbol": "NIFTYBEES", "name": "Nippon India ETF Nifty 50 BeES", "sector": "ETFs & Hedge", "category": "ETF", "is_tradable": True, "base_price": 261.0},
-        {"symbol": "BANKBEES.NS", "display_symbol": "BANKBEES", "name": "Nippon India ETF Nifty Bank BeES", "sector": "ETFs & Hedge", "category": "ETF", "is_tradable": True, "base_price": 512.0},
-        {"symbol": "ITBEES.NS", "display_symbol": "ITBEES", "name": "Nippon India ETF Nifty IT", "sector": "ETFs & Hedge", "category": "ETF", "is_tradable": True, "base_price": 435.0},
-        {"symbol": "JUNIORBEES.NS", "display_symbol": "JUNIORBEES", "name": "Nippon India ETF Nifty Next 50", "sector": "ETFs & Hedge", "category": "ETF", "is_tradable": True, "base_price": 745.0},
-        {"symbol": "GOLDBEES.NS", "display_symbol": "GOLDBEES", "name": "Nippon India ETF Gold BeES", "sector": "ETFs & Hedge", "category": "ETF", "is_tradable": True, "base_price": 68.5},
-        {"symbol": "LIQUIDBEES.NS", "display_symbol": "LIQUIDBEES", "name": "Nippon India ETF Liquid BeES", "sector": "ETFs & Hedge", "category": "ETF", "is_tradable": True, "base_price": 1000.0},
+        {"symbol": "NIFTYBEES.NS", "display_symbol": "NIFTYBEES", "name": "Nippon India ETF Nifty 50 BeES", "sector": "ETFs & Hedge", "category": "ETF", "is_tradable": True, "base_price": 258.5, "change_pct": -1.03},
+        {"symbol": "BANKBEES.NS", "display_symbol": "BANKBEES", "name": "Nippon India ETF Nifty Bank BeES", "sector": "ETFs & Hedge", "category": "ETF", "is_tradable": True, "base_price": 568.14, "change_pct": -1.36},
+        {"symbol": "ITBEES.NS", "display_symbol": "ITBEES", "name": "Nippon India ETF Nifty IT", "sector": "ETFs & Hedge", "category": "ETF", "is_tradable": True, "base_price": 35.55, "change_pct": 1.77},
+        {"symbol": "JUNIORBEES.NS", "display_symbol": "JUNIORBEES", "name": "Nippon India ETF Nifty Next 50", "sector": "ETFs & Hedge", "category": "ETF", "is_tradable": True, "base_price": 727.0, "change_pct": -2.38},
+        {"symbol": "GOLDBEES.NS", "display_symbol": "GOLDBEES", "name": "Nippon India ETF Gold BeES", "sector": "ETFs & Hedge", "category": "ETF", "is_tradable": True, "base_price": 117.46, "change_pct": -1.98},
+        {"symbol": "LIQUIDBEES.NS", "display_symbol": "LIQUIDBEES", "name": "Nippon India ETF Liquid BeES", "sector": "ETFs & Hedge", "category": "ETF", "is_tradable": True, "base_price": 1000.0, "change_pct": 0.0},
     ],
     "benchmarks": [
         # 9. Market Benchmark (Non-Tradable Reference)
-        {"symbol": "^NSEI", "display_symbol": "NIFTY 50", "name": "NIFTY 50 Spot Index (Benchmark)", "sector": "Benchmark Index", "category": "INDEX", "is_tradable": False, "base_price": 22950.0},
+        {"symbol": "^NSEI", "display_symbol": "NIFTY 50", "name": "NIFTY 50 Spot Index (Benchmark)", "sector": "Benchmark Index", "category": "INDEX", "is_tradable": False, "base_price": 22687.75, "change_pct": -1.01},
     ]
 }
 
@@ -312,7 +312,7 @@ def fetch_real_or_fallback_ohlcv(
     try:
         logger.info(f"Fetching real OHLCV from yfinance for {ticker} (fetch_period={yf_fetch_period}, target={period_norm})...")
         t = yf.Ticker(ticker)
-        df: pd.DataFrame = t.history(period=yf_fetch_period, interval=interval, auto_adjust=False)
+        df: pd.DataFrame = t.history(period=yf_fetch_period, interval=interval, auto_adjust=True)
         
         if df is None or df.empty or len(df) < 5:
             logger.warning(f"yfinance returned empty or insufficient data for {ticker}. Using deterministic fallback.")
