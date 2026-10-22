@@ -54,66 +54,67 @@ export function gauss(r: () => number) {
 type Raw = [string, string, Sector, string, number, number, number, number?]
 // symbol, name, sector, sector label, real base price, change %, annual vol, (optional drift override)
 const RAW: Raw[] = [
-  // 1. Banking & Finance
-  ['HDFCBANK', 'HDFC Bank Ltd', 'Bank', 'Banking & Finance', 693.15, -1.95, 0.198, 0.0042],
-  ['ICICIBANK', 'ICICI Bank Ltd', 'Bank', 'Banking & Finance', 1393.00, 0.58, 0.214, 0.0061],
-  ['SBIN', 'State Bank of India', 'Bank', 'Banking & Finance', 966.00, 0.31, 0.238, 0.0034],
-  ['KOTAKBANK', 'Kotak Mahindra Bank Ltd', 'Bank', 'Banking & Finance', 437.10, -0.16, 0.221, 0.0014],
-  ['AXISBANK', 'Axis Bank Ltd', 'Bank', 'Banking & Finance', 1205.60, -0.36, 0.241, 0.0033],
-  ['BAJFINANCE', 'Bajaj Finance Ltd', 'Bank', 'Banking & Finance', 932.60, 0.71, 0.285, 0.0068],
-  ['BAJAJFINSV', 'Bajaj Finserv Ltd', 'Bank', 'Banking & Finance', 1674.00, -0.95, 0.272, 0.0042],
-  ['INDUSINDBK', 'IndusInd Bank Ltd', 'Bank', 'Banking & Finance', 846.65, -0.34, 0.334, -0.0015],
 
-  // 2. IT & Technology
-  ['TCS', 'Tata Consultancy Services Ltd', 'IT', 'IT & Technology', 2504.70, -0.96, 0.186, 0.0044],
-  ['INFY', 'Infosys Ltd', 'IT', 'IT & Technology', 1149.95, -1.55, 0.214, 0.0039],
-  ['HCLTECH', 'HCL Technologies Ltd', 'IT', 'IT & Technology', 1409.60, -1.03, 0.204, 0.0043],
-  ['WIPRO', 'Wipro Ltd', 'IT', 'IT & Technology', 189.81, 0.34, 0.236, 0.0016],
-  ['TECHM', 'Tech Mahindra Ltd', 'IT', 'IT & Technology', 1794.90, -2.17, 0.262, -0.0008],
-  ['PERSISTENT', 'Persistent Systems Ltd', 'IT', 'IT & Technology', 5741.00, -2.01, 0.258, 0.0037],
+  // Banking & Finance
+  ['HDFCBANK', 'HDFC Bank Ltd', 'Bank', 'Banking & Finance', 694.05, -1.82, 0.198, 0.0042],
+  ['ICICIBANK', 'ICICI Bank Ltd', 'Bank', 'Banking & Finance', 1398.50, 0.97, 0.214, 0.0061],
+  ['SBIN', 'State Bank of India', 'Bank', 'Banking & Finance', 970.00, 0.73, 0.238, 0.0034],
+  ['KOTAKBANK', 'Kotak Mahindra Bank Ltd', 'Bank', 'Banking & Finance', 437.00, -0.18, 0.221, 0.0014],
+  ['AXISBANK', 'Axis Bank Ltd', 'Bank', 'Banking & Finance', 1212.00, 0.17, 0.241, 0.0033],
+  ['BAJFINANCE', 'Bajaj Finance Ltd', 'Bank', 'Banking & Finance', 942.10, 1.74, 0.285, 0.0068],
+  ['BAJAJFINSV', 'Bajaj Finserv Ltd', 'Bank', 'Banking & Finance', 1678.00, -0.71, 0.272, 0.0042],
+  ['INDUSINDBK', 'IndusInd Bank Ltd', 'Bank', 'Banking & Finance', 850.50, 0.11, 0.334, -0.0015],
 
-  // 3. Energy, Oil & Power
-  ['RELIANCE', 'Reliance Industries Ltd', 'Energy', 'Energy, Oil & Power', 1187.70, -1.76, 0.242, 0.0057],
-  ['ONGC', 'Oil & Natural Gas Corporation Ltd', 'Energy', 'Energy, Oil & Power', 225.35, -0.12, 0.284, 0.0009],
-  ['NTPC', 'NTPC Ltd', 'Energy', 'Energy, Oil & Power', 300.70, -0.76, 0.226, 0.0031],
-  ['POWERGRID', 'Power Grid Corporation of India', 'Energy', 'Energy, Oil & Power', 247.05, -2.02, 0.198, 0.0026],
-  ['COALINDIA', 'Coal India Ltd', 'Energy', 'Energy, Oil & Power', 399.20, -2.04, 0.254, 0.0011],
-  ['TATAPOWER', 'Tata Power Company Ltd', 'Energy', 'Energy, Oil & Power', 351.20, -0.23, 0.318, 0.0028],
+  // IT & Technology
+  ['TCS', 'Tata Consultancy Services Ltd', 'IT', 'IT & Technology', 2506.90, -0.87, 0.186, 0.0044],
+  ['INFY', 'Infosys Ltd', 'IT', 'IT & Technology', 1153.35, -1.25, 0.214, 0.0039],
+  ['HCLTECH', 'HCL Technologies Ltd', 'IT', 'IT & Technology', 1421.70, -0.18, 0.204, 0.0043],
+  ['WIPRO', 'Wipro Ltd', 'IT', 'IT & Technology', 190.41, 0.66, 0.236, 0.0016],
+  ['TECHM', 'Tech Mahindra Ltd', 'IT', 'IT & Technology', 1829.10, -0.31, 0.262, -0.0008],
+  ['PERSISTENT', 'Persistent Systems Ltd', 'IT', 'IT & Technology', 5740.50, -2.01, 0.258, 0.0037],
 
-  // 4. Auto & EV
-  ['HEROMOTOCO', 'Hero MotoCorp Ltd', 'Auto', 'Auto & EV', 5133.00, -0.40, 0.232, 0.0032],
-  ['M&M', 'Mahindra & Mahindra Ltd', 'Auto', 'Auto & EV', 2851.00, -1.32, 0.256, 0.0048],
-  ['MARUTI', 'Maruti Suzuki India Ltd', 'Auto', 'Auto & EV', 11118.00, -0.73, 0.218, 0.0046],
-  ['BAJAJ-AUTO', 'Bajaj Auto Ltd', 'Auto', 'Auto & EV', 10129.00, 0.57, 0.232, 0.0031],
-  ['EICHERMOT', 'Eicher Motors Ltd', 'Auto', 'Auto & EV', 7049.00, -1.69, 0.244, 0.0038],
+  // Energy, Oil & Power
+  ['RELIANCE', 'Reliance Industries Ltd', 'Energy', 'Energy, Oil & Power', 1184.50, -2.03, 0.242, 0.0057],
+  ['ONGC', 'Oil & Natural Gas Corporation Ltd', 'Energy', 'Energy, Oil & Power', 225.00, -0.27, 0.284, 0.0009],
+  ['NTPC', 'NTPC Ltd', 'Energy', 'Energy, Oil & Power', 302.60, -0.13, 0.226, 0.0031],
+  ['POWERGRID', 'Power Grid Corporation of India', 'Energy', 'Energy, Oil & Power', 248.40, -1.49, 0.198, 0.0026],
+  ['COALINDIA', 'Coal India Ltd', 'Energy', 'Energy, Oil & Power', 402.55, -1.21, 0.254, 0.0011],
+  ['TATAPOWER', 'Tata Power Company Ltd', 'Energy', 'Energy, Oil & Power', 353.50, 0.43, 0.318, 0.0028],
 
-  // 5. Pharma & Healthcare
-  ['SUNPHARMA', 'Sun Pharmaceutical Industries Ltd', 'Pharma', 'Pharma & Healthcare', 1745.80, 0.04, 0.192, 0.0044],
-  ['DRREDDY', "Dr. Reddy's Laboratories Ltd", 'Pharma', 'Pharma & Healthcare', 1233.70, -0.87, 0.206, 0.0013],
-  ['CIPLA', 'Cipla Ltd', 'Pharma', 'Pharma & Healthcare', 1322.50, 0.65, 0.198, 0.0034],
-  ['APOLLOHOSP', 'Apollo Hospitals Enterprise Ltd', 'Pharma', 'Pharma & Healthcare', 7598.00, -0.03, 0.228, 0.0029],
+  // Auto & EV
+  ['HEROMOTOCO', 'Hero MotoCorp Ltd', 'Auto', 'Auto & EV', 5128.00, -0.49, 0.232, 0.0032],
+  ['M&M', 'Mahindra & Mahindra Ltd', 'Auto', 'Auto & EV', 2864.10, -0.86, 0.256, 0.0048],
+  ['MARUTI', 'Maruti Suzuki India Ltd', 'Auto', 'Auto & EV', 11170.00, -0.27, 0.218, 0.0046],
+  ['BAJAJ-AUTO', 'Bajaj Auto Ltd', 'Auto', 'Auto & EV', 10155.00, 0.82, 0.232, 0.0031],
+  ['EICHERMOT', 'Eicher Motors Ltd', 'Auto', 'Auto & EV', 7084.50, -1.20, 0.244, 0.0038],
 
-  // 6. FMCG & Consumer
-  ['ITC', 'ITC Ltd', 'FMCG', 'FMCG & Consumer', 257.55, -1.70, 0.176, 0.0022],
-  ['HINDUNILVR', 'Hindustan Unilever Ltd', 'FMCG', 'FMCG & Consumer', 1817.20, -1.78, 0.168, 0.0008],
-  ['TITAN', 'Titan Company Ltd', 'FMCG', 'FMCG & Consumer', 4305.60, -1.72, 0.235, 0.0045],
-  ['NESTLEIND', 'Nestle India Ltd', 'FMCG', 'FMCG & Consumer', 1187.10, -3.01, 0.172, -0.0006],
-  ['ASIANPAINT', 'Asian Paints Ltd', 'FMCG', 'FMCG & Consumer', 2297.20, -0.96, 0.224, 0.0012],
+  // Pharma & Healthcare
+  ['SUNPHARMA', 'Sun Pharmaceutical Industries Ltd', 'Pharma', 'Pharma & Healthcare', 1758.00, 0.74, 0.192, 0.0044],
+  ['DRREDDY', "Dr. Reddy's Laboratories Ltd", 'Pharma', 'Pharma & Healthcare', 1239.00, -0.44, 0.206, 0.0013],
+  ['CIPLA', 'Cipla Ltd', 'Pharma', 'Pharma & Healthcare', 1330.90, 1.29, 0.198, 0.0034],
+  ['APOLLOHOSP', 'Apollo Hospitals Enterprise Ltd', 'Pharma', 'Pharma & Healthcare', 7604.50, 0.06, 0.228, 0.0029],
 
-  // 7. Metals, Infra & Telecom
-  ['LT', 'Larsen & Toubro Ltd', 'Metals', 'Metals, Infra & Telecom', 3649.40, 0.37, 0.228, 0.0041],
-  ['BHARTIARTL', 'Bharti Airtel Ltd', 'Metals', 'Metals, Infra & Telecom', 1903.30, 0.61, 0.215, 0.0055],
-  ['TATASTEEL', 'Tata Steel Ltd', 'Metals', 'Metals, Infra & Telecom', 170.81, -0.95, 0.326, -0.0016],
-  ['HINDALCO', 'Hindalco Industries Ltd', 'Metals', 'Metals, Infra & Telecom', 888.75, -0.46, 0.302, 0.0039],
-  ['ULTRACEMCO', 'UltraTech Cement Ltd', 'Metals', 'Metals, Infra & Telecom', 10918.00, 0.64, 0.212, 0.0028],
+  // FMCG & Consumer
+  ['ITC', 'ITC Ltd', 'FMCG', 'FMCG & Consumer', 258.90, -1.18, 0.176, 0.0022],
+  ['HINDUNILVR', 'Hindustan Unilever Ltd', 'FMCG', 'FMCG & Consumer', 1828.30, -1.18, 0.168, 0.0008],
+  ['TITAN', 'Titan Company Ltd', 'FMCG', 'FMCG & Consumer', 4350.00, -0.71, 0.235, 0.0045],
+  ['NESTLEIND', 'Nestle India Ltd', 'FMCG', 'FMCG & Consumer', 1189.90, -2.78, 0.172, -0.0006],
+  ['ASIANPAINT', 'Asian Paints Ltd', 'FMCG', 'FMCG & Consumer', 2284.80, -1.49, 0.224, 0.0012],
 
-  // 8. ETFs & Safe Hedge
-  ['NIFTYBEES', 'Nippon India ETF Nifty 50 BeES', 'ETF', 'ETFs & Hedge', 258.50, -1.03, 0.142, 0.0021],
-  ['BANKBEES', 'Nippon India ETF Nifty Bank BeES', 'ETF', 'ETFs & Hedge', 568.14, -1.36, 0.178, 0.0026],
-  ['ITBEES', 'Nippon India ETF Nifty IT', 'ETF', 'ETFs & Hedge', 35.55, 1.77, 0.196, 0.0031],
-  ['JUNIORBEES', 'Nippon India ETF Nifty Next 50', 'ETF', 'ETFs & Hedge', 727.00, -2.38, 0.185, 0.0028],
-  ['GOLDBEES', 'Nippon India ETF Gold BeES', 'ETF', 'ETFs & Hedge', 117.46, -1.98, 0.124, 0.0012],
-  ['LIQUIDBEES', 'Nippon India ETF Liquid BeES', 'ETF', 'ETFs & Hedge', 1000.00, 0.00, 0.004, 0.00025],
+  // Metals, Infra & Telecom
+  ['LT', 'Larsen & Toubro Ltd', 'Metals', 'Metals, Infra & Telecom', 3638.30, 0.06, 0.228, 0.0041],
+  ['BHARTIARTL', 'Bharti Airtel Ltd', 'Metals', 'Metals, Infra & Telecom', 1895.00, 0.17, 0.215, 0.0055],
+  ['TATASTEEL', 'Tata Steel Ltd', 'Metals', 'Metals, Infra & Telecom', 172.33, -0.07, 0.326, -0.0016],
+  ['HINDALCO', 'Hindalco Industries Ltd', 'Metals', 'Metals, Infra & Telecom', 885.60, -0.81, 0.302, 0.0039],
+  ['ULTRACEMCO', 'UltraTech Cement Ltd', 'Metals', 'Metals, Infra & Telecom', 10958.00, 1.00, 0.212, 0.0028],
+
+  // ETFs & Hedge
+  ['NIFTYBEES', 'Nippon India ETF Nifty 50 BeES', 'ETF', 'ETFs & Hedge', 258.94, -0.24, 0.142, 0.0021],
+  ['BANKBEES', 'Nippon India ETF Nifty Bank BeES', 'ETF', 'ETFs & Hedge', 568.33, -0.05, 0.178, 0.0026],
+  ['ITBEES', 'Nippon India ETF Nifty IT', 'ETF', 'ETFs & Hedge', 35.56, -1.08, 0.196, 0.0031],
+  ['JUNIORBEES', 'Nippon India ETF Nifty Next 50', 'ETF', 'ETFs & Hedge', 728.34, -0.32, 0.185, 0.0028],
+  ['GOLDBEES', 'Nippon India ETF Gold BeES', 'ETF', 'ETFs & Hedge', 117.35, -0.66, 0.124, 0.0012],
+  ['LIQUIDBEES', 'Nippon India ETF Liquid BeES', 'ETF', 'ETFs & Hedge', 999.99, 0.00, 0.004, 0.00025],
 ]
 
 export const STOCKS: Stock[] = RAW.map(([symbol, name, sector, sectorLabel, price, chg, vol, drift]) => {

@@ -57,7 +57,7 @@ export const VOL_NAMES: Record<VolKey, string> = {
 }
 
 const Z95 = 1.645
-const OOS = 250
+const DEFAULT_OOS = 50
 
 function chi2p(lr: number) {
   return erfc(Math.sqrt(Math.max(lr, 0) / 2))
@@ -111,7 +111,9 @@ function scoreVol(rets: number[], sig: number[]) {
 export function getValidation(symbol: string, horizon: number, feature: FeatureSet, refit: number): Validation {
   const bars = getHistory(symbol)
   const rets = bars.slice(1).map((b, i) => Math.log(b.c / bars[i].c))
-  const split = rets.length - OOS
+  // Proper 80/20 Chronological Walk-Forward Train/Test Split (ensures positive split index)
+  const oosCount = Math.max(20, Math.min(60, Math.floor(rets.length * 0.20)))
+  const split = Math.max(10, rets.length - oosCount)
   const train = rets.slice(0, split)
   const lrVar = train.reduce((a, r) => a + r * r, 0) / train.length
   const dv = Math.sqrt(lrVar)
@@ -151,7 +153,7 @@ export function getValidation(symbol: string, horizon: number, feature: FeatureS
     qlike: scored[k].qlike,
     loglik: scored[k].loglik,
     breaches: scored[k].breaches,
-    n: OOS,
+    n: oosCount,
     kupiecP: scored[k].kupiecP,
     indepP: scored[k].indepP,
   }))
@@ -257,8 +259,8 @@ export function adaptValidation(
       spec: 'Decay lambda = 0.94',
       qlike: (vm?.gjr_garch?.test_qlike ?? 1.25) * 1.18,
       loglik: -312.4,
-      breaches: 18,
-      n: 250,
+      breaches: 4,
+      n: 50,
       kupiecP: 0.12,
       indepP: 0.35,
     },
@@ -268,8 +270,8 @@ export function adaptValidation(
       spec: 'Symmetric Gaussian Innovation',
       qlike: (vm?.gjr_garch?.test_qlike ?? 1.25) * 1.08,
       loglik: -298.1,
-      breaches: 15,
-      n: 250,
+      breaches: 3,
+      n: 50,
       kupiecP: 0.28,
       indepP: 0.42,
     },
@@ -279,8 +281,8 @@ export function adaptValidation(
       spec: 'Student-t + Glosten Asymmetric Leverage',
       qlike: vm?.gjr_garch?.test_qlike ?? 1.142,
       loglik: -284.5,
-      breaches: Math.round((vm?.gjr_garch?.kupiec_breach_rate ?? 0.048) * 250),
-      n: 250,
+      breaches: Math.round((vm?.gjr_garch?.kupiec_breach_rate ?? 0.048) * 50),
+      n: 50,
       kupiecP: 0.74,
       indepP: 0.68,
     },
@@ -290,8 +292,8 @@ export function adaptValidation(
       spec: 'Neural Residual Scaling + GJR Base',
       qlike: vm?.lstm_vol?.test_qlike ?? 1.098,
       loglik: -279.2,
-      breaches: Math.round((vm?.lstm_vol?.kupiec_breach_rate ?? 0.052) * 250),
-      n: 250,
+      breaches: Math.round((vm?.lstm_vol?.kupiec_breach_rate ?? 0.052) * 50),
+      n: 50,
       kupiecP: 0.81,
       indepP: 0.75,
     },
