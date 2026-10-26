@@ -131,6 +131,35 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               <span>{isSubmitting ? 'Verifying Credentials…' : 'Enter Terminal'}</span>
               <ArrowRight className="size-4" />
             </button>
+
+            {/* Quick-fill access for testing */}
+            <div className="mt-4 pt-3 border-t border-line/60">
+              <span className="block text-center text-[10.5px] text-fg-4 mb-2">
+                Quick Credentials: Click to pre-fill
+              </span>
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUserId('1234')
+                    setPassword('1234')
+                  }}
+                  className="rounded-md border border-line bg-canvas px-2.5 py-1 text-[11px] font-medium text-fg-3 transition-colors hover:border-accent hover:text-fg"
+                >
+                  Admin: <strong className="text-fg">1234</strong>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUserId('trader1')
+                    setPassword('user123')
+                  }}
+                  className="rounded-md border border-line bg-canvas px-2.5 py-1 text-[11px] font-medium text-fg-3 transition-colors hover:border-accent hover:text-fg"
+                >
+                  Trader: <strong className="text-fg">trader1</strong>
+                </button>
+              </div>
+            </div>
           </form>
         </div>
 

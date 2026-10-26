@@ -110,6 +110,9 @@ export async function apiLogin(userId: string, password: string): Promise<any> {
     body: JSON.stringify({ userId, password }),
   });
   if (!res.ok) {
+    if (res.status === 404) {
+      throw new Error('Backend server offline (404)');
+    }
     const err = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(err.detail || 'Login failed');
   }

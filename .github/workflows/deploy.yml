@@ -3,10 +3,13 @@ name: Deploy Frontend to GitHub Pages
 on:
   push:
     branches: [main]
+  schedule:
+    # Run every Monday-Friday at 10:45 UTC (16:15 IST - 45 mins after NSE closes at 15:30)
+    - cron: '45 10 * * 1-5'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -23,6 +26,19 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          pip install yfinance
+
+      - name: Update Daily Settled Market Data
+        run: |
+          python scripts/update_market_data.py
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

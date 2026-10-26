@@ -137,11 +137,20 @@ export async function login(
       return { success: true, user: serverUser }
     }
   } catch (err: any) {
-    // If backend explicitly rejected invalid credentials (401 / 400), return error
-    if (err.message && !err.message.includes('Failed to fetch') && !err.message.includes('NetworkError')) {
-      return { success: false, error: err.message }
+    const msg = String(err?.message || '')
+    // Only return backend error if the backend is actively running and specifically rejected credentials
+    const isOffline =
+      msg.includes('Failed to fetch') ||
+      msg.includes('NetworkError') ||
+      msg.includes('offline') ||
+      msg.includes('404') ||
+      msg.includes('Not Found') ||
+      msg.includes('SyntaxError')
+
+    if (!isOffline && (msg.includes('Invalid credentials') || msg.includes('Incorrect password') || msg.includes('User not found'))) {
+      return { success: false, error: msg }
     }
-    // If server is unreachable, fall back to local store
+    // If backend is offline or static hosting (GitHub Pages), fall back to local store
   }
 
   // 2. Offline / Local fallback validation

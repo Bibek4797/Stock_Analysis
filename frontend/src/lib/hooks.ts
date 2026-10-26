@@ -54,25 +54,7 @@ export function useISTClock() {
 
 const BASE_PRICES: Record<string, number> = Object.fromEntries(STOCKS.map((s) => [s.symbol, s.price]))
 
-/** Simulated tick stream: small random walk around reference prices while the market is open. */
-export function useLivePrices(active: boolean) {
-  const [prices, setPrices] = useState(BASE_PRICES)
-  const r = useRef(rng(Date.now() % 100000))
-  useEffect(() => {
-    if (!active) return
-    const id = setInterval(() => {
-      setPrices((prev) => {
-        const next: Record<string, number> = {}
-        for (const s of STOCKS) {
-          const step = gauss(r.current) * (s.vol / Math.sqrt(252)) * 0.035
-          const drifted = prev[s.symbol] * (1 + step)
-          // mean-revert gently toward reference so the session stays plausible
-          next[s.symbol] = +(drifted + (s.price - drifted) * 0.02).toFixed(2)
-        }
-        return next
-      })
-    }, 2500)
-    return () => clearInterval(id)
-  }, [active])
-  return prices
+/** Real market prices: maintains authentic exchange prices without synthetic random walk. */
+export function useLivePrices(_active: boolean) {
+  return BASE_PRICES
 }
