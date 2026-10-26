@@ -1,5 +1,5 @@
 import type { Bar, Forecast, Stock } from '@/data/market'
-import type { Portfolio } from '@/data/portfolio'
+import type { Portfolio, Strategy } from '@/data/portfolio'
 import { Sidebar } from './Sidebar'
 import { InstrumentHeader } from './InstrumentHeader'
 import { PriceChart } from './PriceChart'
@@ -20,8 +20,12 @@ export function TerminalScreen(props: {
   onTab: (t: 'risk' | 'portfolio') => void
   bars?: Bar[]
   stocks?: Stock[]
+  strategyMode?: Strategy | 'auto'
+  onStrategyMode?: (s: Strategy | 'auto') => void
+  selectedSymbols?: string[] | null
+  onSelectSymbols?: (symbols: string[] | null) => void
 }) {
-  const { stock, prices, fc, portfolio, bars, stocks } = props
+  const { stock, prices, fc, portfolio, bars, stocks, strategyMode, onStrategyMode, selectedSymbols, onSelectSymbols } = props
   const price = prices[stock.symbol] ?? stock.price
   return (
     <div className="gap-3 max-lg:flex max-lg:flex-col max-lg:p-3 lg:grid lg:grid-cols-[264px_minmax(0,1fr)] lg:gap-0">
@@ -34,6 +38,10 @@ export function TerminalScreen(props: {
         onSymbol={props.onSymbol}
         prices={prices}
         stocks={stocks}
+        strategyMode={strategyMode}
+        onStrategyMode={onStrategyMode}
+        selectedSymbols={selectedSymbols}
+        onSelectSymbols={onSelectSymbols}
       />
       <div className="scroll-thin flex min-w-0 flex-col gap-3 lg:h-[calc(100dvh-49px)] lg:overflow-y-auto lg:p-3">
         <InstrumentHeader stock={stock} price={price} bars={bars} />

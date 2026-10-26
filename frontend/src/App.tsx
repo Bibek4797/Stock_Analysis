@@ -375,6 +375,7 @@ export default function App() {
               strategyMode={strategyMode}
               onStrategyMode={setStrategyMode}
               selectedSymbols={selectedSymbols}
+              onSelectSymbols={setSelectedSymbols}
               feature={feature}
               returnModel={retSel}
               riskModel={riskSel}

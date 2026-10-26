@@ -181,7 +181,12 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
   // Candidate symbols: custom selection or top quality universe
   const pool =
     opts.selectedSymbols && opts.selectedSymbols.length > 0
-      ? opts.selectedSymbols.map((sym) => STOCK_MAP[sym]).filter(Boolean)
+      ? opts.selectedSymbols
+          .map((sym) => {
+            const clean = sym.replace('.NS', '')
+            return STOCK_MAP[clean] || STOCKS.find((s) => s.symbol === clean)
+          })
+          .filter(Boolean) as Stock[]
       : STOCKS.filter((s) => s.sector !== 'ETF')
 
   // Generate authentic quant predictions at entry date (NO LOOKAHEAD BIAS)
@@ -255,38 +260,54 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
 
   // Calculate Strategy Weights
   const deploy = 0.85
-  const rawWeights = selected.map((item) => {
-    switch (resolvedStrategy) {
-      case 'cvar':
-        return Math.max(0.01, item.score / Math.max(0.005, Math.abs(item.tail)))
-      case 'trc':
-        return 1 / Math.max(0.01, item.effVol)
-      case 'mpt':
-        return Math.pow(Math.max(0.01, item.score), 2) / Math.max(0.01, item.effVol)
-      case 'equal':
-      default:
-        return 1
-    }
-  })
+  let maxWeightCap = 0.20
+  let rawWeights: number[] = []
 
-  // Normalize and cap weights at 18%
-  const MAX_W = 0.18
+  switch (resolvedStrategy) {
+    case 'cvar': {
+      maxWeightCap = 0.22
+      rawWeights = selected.map((item) =>
+        Math.pow(Math.max(0.01, item.score) / Math.max(0.005, Math.abs(item.tail)), 1.5)
+      )
+      break
+    }
+    case 'trc': {
+      maxWeightCap = 0.18
+      rawWeights = selected.map((item) => 1 / Math.max(0.02, item.effVol))
+      break
+    }
+    case 'mpt': {
+      maxWeightCap = 0.28
+      rawWeights = selected.map((item) => {
+        const sharpe = Math.max(0.05, item.expRet) / Math.max(0.02, item.effVol)
+        return Math.pow(sharpe, 2.2)
+      })
+      break
+    }
+    case 'equal':
+    default: {
+      maxWeightCap = 1.0
+      rawWeights = selected.map(() => 1)
+      break
+    }
+  }
+
   const sumRaw = rawWeights.reduce((a, b) => a + b, 0) || 1
   let weights = rawWeights.map((w) => (w / sumRaw) * deploy)
   for (let iter = 0; iter < 5; iter++) {
     let excess = 0
     let uncappedSum = 0
     for (let i = 0; i < weights.length; i++) {
-      if (weights[i] > MAX_W) {
-        excess += weights[i] - MAX_W
-        weights[i] = MAX_W
+      if (weights[i] > maxWeightCap) {
+        excess += weights[i] - maxWeightCap
+        weights[i] = maxWeightCap
       } else {
         uncappedSum += weights[i]
       }
     }
     if (excess > 0 && uncappedSum > 0) {
       for (let i = 0; i < weights.length; i++) {
-        if (weights[i] < MAX_W) {
+        if (weights[i] < maxWeightCap) {
           weights[i] += (weights[i] / uncappedSum) * excess
         }
       }

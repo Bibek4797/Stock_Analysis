@@ -12,6 +12,8 @@ const CAPITAL_PRESETS = [
 ]
 const HORIZONS = [3, 5, 7, 10]
 
+import type { Strategy } from '@/data/portfolio'
+
 export function Sidebar({
   capital,
   onCapital,
@@ -21,6 +23,10 @@ export function Sidebar({
   onSymbol,
   prices,
   stocks,
+  strategyMode = 'auto',
+  onStrategyMode,
+  selectedSymbols,
+  onSelectSymbols,
 }: {
   capital: number
   onCapital: (v: number) => void
@@ -30,6 +36,10 @@ export function Sidebar({
   onSymbol: (s: string) => void
   prices: Record<string, number>
   stocks?: Stock[]
+  strategyMode?: Strategy | 'auto'
+  onStrategyMode?: (s: Strategy | 'auto') => void
+  selectedSymbols?: string[] | null
+  onSelectSymbols?: (symbols: string[] | null) => void
 }) {
   const [query, setQuery] = useState('')
   const [sector, setSector] = useState<'All' | Sector>('All')
@@ -136,6 +146,39 @@ export function Sidebar({
             </label>
           </div>
         </div>
+
+        {/* Portfolio Theory Strategy Selector */}
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <Label>Portfolio Theory</Label>
+            <span className="text-[10px] text-accent font-semibold uppercase">{strategyMode}</span>
+          </div>
+          <Seg
+            label="Optimization strategy"
+            className="w-full text-[10.5px]"
+            options={[
+              { value: 'auto', label: 'Auto' },
+              { value: 'cvar', label: 'CVaR' },
+              { value: 'trc', label: 'TRC' },
+              { value: 'mpt', label: 'MPT' },
+              { value: 'equal', label: '1/N' },
+            ]}
+            value={strategyMode}
+            onChange={(s) => onStrategyMode?.(s as Strategy | 'auto')}
+          />
+        </div>
+
+        {selectedSymbols && selectedSymbols.length > 0 && (
+          <div className="flex items-center justify-between rounded border border-accent/40 bg-accent/10 px-2 py-1 text-[11px]">
+            <span className="font-semibold text-accent truncate">Custom Basket ({selectedSymbols.length})</span>
+            <button
+              onClick={() => onSelectSymbols?.(null)}
+              className="text-fg-3 hover:text-fg text-[10px] underline ml-1 shrink-0"
+            >
+              Reset
+            </button>
+          </div>
+        )}
       </div>
 
       {/* watchlist */}

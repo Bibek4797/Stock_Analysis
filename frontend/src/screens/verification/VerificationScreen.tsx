@@ -25,7 +25,182 @@ import {
   Target,
   BarChart3,
   RefreshCw,
+  SlidersHorizontal,
+  Check,
+  Search,
+  X,
 } from 'lucide-react'
+import { STOCKS, type Sector } from '@/data/market'
+
+function CustomBasketModal({
+  isOpen,
+  onClose,
+  selectedSymbols,
+  onApply,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  selectedSymbols: string[] | null
+  onApply: (symbols: string[] | null) => void
+}) {
+  const [search, setSearch] = useState('')
+  const [sector, setSector] = useState<'All' | Sector>('All')
+  const nonEtfStocks = STOCKS.filter((s) => s.sector !== 'ETF')
+  const [tempSelected, setTempSelected] = useState<string[]>(() => {
+    if (selectedSymbols && selectedSymbols.length > 0) return [...selectedSymbols]
+    return nonEtfStocks.slice(0, 8).map((s) => s.symbol)
+  })
+
+  if (!isOpen) return null
+
+  const filtered = nonEtfStocks.filter(
+    (s) =>
+      (sector === 'All' || s.sector === sector) &&
+      (!search ||
+        s.symbol.toLowerCase().includes(search.toLowerCase()) ||
+        s.name.toLowerCase().includes(search.toLowerCase()))
+  )
+
+  const toggle = (sym: string) => {
+    setTempSelected((prev) =>
+      prev.includes(sym) ? prev.filter((x) => x !== sym) : [...prev, sym]
+    )
+  }
+
+  const sectors: ('All' | Sector)[] = ['All', 'Bank', 'IT', 'Energy', 'Auto', 'Pharma', 'FMCG', 'Metals']
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm animate-fade-in">
+      <div className="flex h-[580px] w-full max-w-2xl flex-col rounded-xl border border-line bg-surface shadow-2xl">
+        <header className="flex h-12 shrink-0 items-center justify-between border-b border-line px-4">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="size-4 text-accent" />
+            <h2 className="text-[13px] font-semibold text-fg">Custom Stock Basket Selection</h2>
+            <span className="rounded bg-surface-3 px-1.5 py-0.5 text-[10.5px] font-mono font-medium text-fg-3">
+              {tempSelected.length} selected
+            </span>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close dialog"
+            className="flex size-7 items-center justify-center rounded text-fg-4 transition-colors hover:bg-surface-2 hover:text-fg"
+          >
+            <X className="size-4" />
+          </button>
+        </header>
+
+        <div className="flex shrink-0 items-center gap-2 border-b border-line bg-surface-2/50 px-4 py-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-fg-4" />
+            <input
+              type="text"
+              placeholder="Search by symbol or name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-8 w-full rounded border border-line bg-canvas pl-8 pr-3 text-[12px] text-fg placeholder:text-fg-4 focus:border-accent outline-none"
+            />
+          </div>
+          <button
+            onClick={() => setTempSelected(nonEtfStocks.map((s) => s.symbol))}
+            className="rounded border border-line bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-fg-3 hover:text-fg"
+          >
+            Select All
+          </button>
+          <button
+            onClick={() => setTempSelected([])}
+            className="rounded border border-line bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-fg-3 hover:text-fg"
+          >
+            Clear
+          </button>
+        </div>
+
+        <div className="scroll-thin flex shrink-0 gap-1.5 overflow-x-auto border-b border-line px-4 py-1.5">
+          {sectors.map((sec) => (
+            <button
+              key={sec}
+              onClick={() => setSector(sec)}
+              className={cx(
+                'rounded px-2.5 py-0.5 text-[11px] font-medium transition-colors shrink-0',
+                sector === sec
+                  ? 'bg-accent/20 text-accent font-semibold'
+                  : 'text-fg-4 hover:bg-surface-2 hover:text-fg-2'
+              )}
+            >
+              {sec}
+            </button>
+          ))}
+        </div>
+
+        <div className="scroll-thin flex-1 overflow-y-auto p-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {filtered.map((s) => {
+              const checked = tempSelected.includes(s.symbol)
+              return (
+                <button
+                  key={s.symbol}
+                  type="button"
+                  onClick={() => toggle(s.symbol)}
+                  className={cx(
+                    'flex items-center justify-between rounded-lg border p-2 text-left transition-colors',
+                    checked
+                      ? 'border-accent/50 bg-accent/10 text-fg shadow-sm'
+                      : 'border-line bg-canvas/60 text-fg-3 hover:border-line-2 hover:bg-surface-2'
+                  )}
+                >
+                  <div className="min-w-0 pr-1">
+                    <span className="block truncate text-[11.5px] font-semibold text-fg">
+                      {s.symbol}
+                    </span>
+                    <span className="block truncate text-[10px] text-fg-3">
+                      {s.name}
+                    </span>
+                    <span className="num text-[10.5px] font-medium text-fg-2">
+                      ₹{s.price.toFixed(1)}
+                    </span>
+                  </div>
+                  <div
+                    className={cx(
+                      'flex size-4 shrink-0 items-center justify-center rounded border transition-colors',
+                      checked
+                        ? 'border-accent bg-accent text-canvas'
+                        : 'border-line-2 bg-surface-3'
+                    )}
+                  >
+                    {checked && <Check className="size-3 stroke-[3]" />}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <footer className="flex h-12 shrink-0 items-center justify-between border-t border-line px-4 bg-surface-2">
+          <span className="text-[11.5px] text-fg-3">
+            <strong className="text-fg">{tempSelected.length}</strong> stocks will be used for verification audit
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="rounded px-3 py-1.5 text-[11.5px] font-medium text-fg-3 hover:bg-surface-3 hover:text-fg"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                onApply(tempSelected.length > 0 ? tempSelected : null)
+                onClose()
+              }}
+              className="rounded bg-accent px-4 py-1.5 text-[11.5px] font-semibold text-canvas shadow transition-opacity hover:opacity-90"
+            >
+              Apply Basket
+            </button>
+          </div>
+        </footer>
+      </div>
+
+    </div>
+  )
+}
 
 interface VerificationScreenProps {
   capital: number
@@ -35,6 +210,7 @@ interface VerificationScreenProps {
   strategyMode: Strategy | 'auto'
   onStrategyMode: (s: Strategy | 'auto') => void
   selectedSymbols: string[] | null
+  onSelectSymbols?: (symbols: string[] | null) => void
   feature: FeatureSet
   returnModel: ReturnModelSel
   riskModel: RiskModelSel
@@ -49,11 +225,13 @@ export function VerificationScreen({
   strategyMode,
   onStrategyMode,
   selectedSymbols,
+  onSelectSymbols,
   feature,
   returnModel,
   riskModel,
   livePrices,
 }: VerificationScreenProps) {
+  const [isCustomModalOpen, setIsCustomModalOpen] = useState(false)
   // Available historical sessions (last 50 sessions for convenient selection)
   const allSessions = useMemo(() => getHistoricalSessions(), [])
   const recentSessions = useMemo(() => {
@@ -156,7 +334,7 @@ export function VerificationScreen({
 
       {/* ── CONTROL PANEL BAR ───────────────────────────── */}
       <div className="rounded-xl border border-line bg-surface p-4 shadow-sm">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
           {/* 1. Historical Entry Date Picker */}
           <div className="space-y-1.5">
             <label className="flex items-center gap-1.5 text-[11px] font-bold text-fg-3 uppercase tracking-wider">
@@ -273,6 +451,50 @@ export function VerificationScreen({
               </div>
             </div>
             <div className="text-[11px] text-fg-4">Whole shares allocated dynamically</div>
+          </div>
+
+          {/* 5. Stock Basket Selector */}
+          <div className="space-y-1.5">
+            <label className="flex items-center gap-1.5 text-[11px] font-bold text-fg-3 uppercase tracking-wider">
+              <SlidersHorizontal className="size-3.5 text-accent" />
+              <span>Stock Basket</span>
+            </label>
+            <div className="flex items-center gap-1 rounded-lg border border-line bg-canvas p-1">
+              <button
+                type="button"
+                onClick={() => onSelectSymbols?.(null)}
+                className={cx(
+                  'flex-1 rounded px-2 py-1.5 text-[11px] font-medium transition-colors text-center truncate',
+                  selectedSymbols === null
+                    ? 'bg-up/15 text-up font-semibold border border-up/40'
+                    : 'text-fg-3 hover:text-fg-2 hover:bg-surface-2 border border-transparent'
+                )}
+              >
+                Auto Top 8
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsCustomModalOpen(true)}
+                className={cx(
+                  'flex-1 flex items-center justify-center gap-1 rounded px-2 py-1.5 text-[11px] font-medium transition-colors truncate',
+                  selectedSymbols !== null
+                    ? 'bg-accent/15 text-accent font-semibold border border-accent/40'
+                    : 'text-fg-3 hover:text-fg-2 hover:bg-surface-2 border border-transparent'
+                )}
+              >
+                <span>Custom</span>
+                <span className="rounded bg-surface-3 px-1.5 py-0.2 text-[9.5px] font-semibold text-fg-2">
+                  {selectedSymbols ? `${selectedSymbols.length}` : 'Pick'}
+                </span>
+              </button>
+            </div>
+            <div className="text-[11px] text-fg-4">
+              {selectedSymbols && selectedSymbols.length > 0 ? (
+                <span className="text-accent font-medium">● {selectedSymbols.length} custom stock(s) active</span>
+              ) : (
+                <span>Auto-screened quant universe</span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -400,29 +622,7 @@ export function VerificationScreen({
         </div>
       </div>
 
-      {/* ── EXPLAINER BANNER: UNDERSTANDING THE 3 CARDS ────────── */}
-      <div className="rounded-xl border border-line bg-surface/90 p-3.5 text-[12px] shadow-sm">
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
-          <div className="flex items-center gap-2 font-bold text-fg shrink-0 pr-3 md:border-r md:border-line">
-            <Sparkles className="size-4 text-cyan-400" />
-            <span>How to Read These 3 Cards:</span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 text-[11.5px] text-fg-3">
-            <div className="flex items-start gap-1.5">
-              <span className="font-bold text-cyan-400 shrink-0">[1] Model Prediction:</span>
-              <span>Target return &amp; profit projected on entry (Day 0) by the quantitative forecast model.</span>
-            </div>
-            <div className="flex items-start gap-1.5">
-              <span className="font-bold text-emerald-400 shrink-0">[2] Actual Outcome:</span>
-              <span>Realized profit &amp; return calculated from authentic NSE settled closing auction prices.</span>
-            </div>
-            <div className="flex items-start gap-1.5">
-              <span className="font-bold text-indigo-400 shrink-0">[3] Alpha / Tracking:</span>
-              <span>Reality [2] minus Forecast [1]. Shows if the real market beat (+) or trailed (-) the forecast.</span>
-            </div>
-          </div>
-        </div>
-      </div>
+
 
       {/* ── TRAJECTORY VISUALIZATION CHART ───────────────── */}
       <div className="rounded-xl border border-line bg-surface p-5 shadow-sm space-y-4">
@@ -700,7 +900,7 @@ export function VerificationScreen({
           )}
         >
           <Layers className="size-4" />
-          <span>Asset-by-Asset Audit Table ({report.rows.length} Stocks)</span>
+          <span>Asset-by-Asset Audit Table ({report.rows.length} Stocks{selectedSymbols && selectedSymbols.length > 0 ? " · Custom Basket" : ""})</span>
         </button>
 
         <button
@@ -1025,6 +1225,13 @@ export function VerificationScreen({
           </div>
         </div>
       )}
+      {/* Custom Basket Modal */}
+      <CustomBasketModal
+        isOpen={isCustomModalOpen}
+        onClose={() => setIsCustomModalOpen(false)}
+        selectedSymbols={selectedSymbols}
+        onApply={(syms) => onSelectSymbols?.(syms)}
+      />
     </div>
   )
 }
