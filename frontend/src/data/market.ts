@@ -283,6 +283,79 @@ export function computeGjrGarchVol(bars: Bar[], defaultVol = 0.22): number {
   return clamp(forwardDailyVol * Math.sqrt(252), 0.12, 0.60)
 }
 
+export function computeEconometricDrift(
+  bars: Bar[],
+  symbol: string,
+  horizon: number,
+  entryIdx?: number
+): number {
+  if (!bars || bars.length < 15) {
+    const s = STOCK_MAP[symbol]
+    return (s?.drift ?? 0.002) * horizon
+  }
+
+  const sub = entryIdx !== undefined ? bars.slice(0, entryIdx + 1) : bars
+  const closes = sub.map((b) => b.c)
+  const n = closes.length
+  if (n < 15) {
+    const s = STOCK_MAP[symbol]
+    return (s?.drift ?? 0.002) * horizon
+  }
+
+  const p0 = closes[n - 1]
+
+  // 1. Autoregressive returns (5D, 10D, 20D)
+  const r5 = n > 5 ? Math.log(p0 / closes[n - 6]) : 0
+  const r10 = n > 10 ? Math.log(p0 / closes[n - 11]) : 0
+  const r20 = n > 20 ? Math.log(p0 / closes[n - 21]) : 0
+  const arDaily = 0.45 * (r5 / 5) + 0.35 * (r10 / 10) + 0.20 * (r20 / 20)
+
+  // 2. Trend & moving average distance
+  const window20 = closes.slice(Math.max(0, n - 20))
+  const sma20 = window20.reduce((a, b) => a + b, 0) / window20.length
+  const trend20 = (p0 - sma20) / sma20
+  const trendDaily = 0.0008 * Math.tanh(trend20 * 12.0)
+
+  // 3. 14-day RSI
+  const recentCloses = closes.slice(Math.max(0, n - 15))
+  let gains = 0
+  let losses = 0
+  for (let i = 1; i < recentCloses.length; i++) {
+    const diff = recentCloses[i] - recentCloses[i - 1]
+    if (diff > 0) gains += diff
+    else losses += Math.abs(diff)
+  }
+  const avgG = gains / Math.max(1, recentCloses.length - 1)
+  const avgL = losses / Math.max(1, recentCloses.length - 1)
+  const rs = avgG / Math.max(1e-6, avgL)
+  const rsi = 100 - 100 / (1 + rs)
+  const rsiFactor = (rsi - 50) / 50 // [-1, 1]
+  const rsiDaily = 0.0004 * rsiFactor
+
+  // 4. Market systemic benchmark pressure (NIFTYBEES)
+  const realMap = REAL_HISTORY_DATA as Record<string, Bar[]>
+  const mBars = realMap['NIFTYBEES'] || realMap['NIFTYBEES.NS'] || []
+  let marketDaily = 0
+  if (mBars.length > 20) {
+    const mSub = entryIdx !== undefined ? mBars.slice(0, Math.min(entryIdx, mBars.length - 1) + 1) : mBars
+    const mN = mSub.length
+    if (mN > 20) {
+      const mP0 = mSub[mN - 1].c
+      const mP20 = mSub[mN - 21].c
+      const mR20 = Math.log(mP0 / mP20)
+      const s = STOCK_MAP[symbol]
+      const beta = s?.sector === 'IT' || s?.sector === 'Bank' ? 1.15 : s?.sector === 'FMCG' || s?.sector === 'Pharma' ? 0.75 : 1.0
+      marketDaily = beta * (mR20 / 20)
+    }
+  }
+
+  // Combined daily drift: strictly bounded between -0.8% and +0.8% daily
+  const rawDaily = 0.40 * arDaily + 0.20 * trendDaily + 0.10 * rsiDaily + 0.30 * marketDaily
+  const dailyDrift = clamp(rawDaily, -0.008, 0.008)
+
+  return dailyDrift * horizon
+}
+
 export function forecast(
   s: Stock,
   price: number,
@@ -292,6 +365,7 @@ export function forecast(
     returnModel?: 'auto' | 'sarimax' | 'lstm'
     riskModel?: 'auto' | 'gjr' | 'hybrid'
     refit?: number
+    entryIdx?: number
   }
 ): Forecast {
   const refit = opts?.refit ?? 0
@@ -299,7 +373,7 @@ export function forecast(
   const retSel = opts?.returnModel ?? 'auto'
   const riskSel = opts?.riskModel ?? 'auto'
 
-  const rSeed = hashStr(`${s.symbol}:${horizon}:${feature}:${retSel}:${riskSel}:${refit}`)
+  const rSeed = hashStr(`${s.symbol}:${horizon}:${feature}:${retSel}:${riskSel}:${refit}:${opts?.entryIdx ?? 'live'}`)
   const r = rng(rSeed)
 
   let driftMultiplier = 1.0
@@ -332,12 +406,16 @@ export function forecast(
 
   // Compute authentic GJR-GARCH conditional forward volatility with leverage effect
   const bars = getHistory(s.symbol)
-  const gjrVol = computeGjrGarchVol(bars, s.vol)
+  const subBars = opts?.entryIdx !== undefined ? bars.slice(0, opts.entryIdx + 1) : bars
+  const gjrVol = computeGjrGarchVol(subBars, s.vol)
   const baseVol = (riskSel === 'gjr' || riskSel === 'auto') ? gjrVol : s.vol
   const effVol = baseVol * volMultiplier
   const effDv = effVol / Math.sqrt(252)
   const sigmaH = effDv * Math.sqrt(horizon)
-  const expRet = s.drift * driftMultiplier * horizon
+
+  // Dynamic Econometric Expected Return based on authentic historical momentum, trend, and market regime
+  const dynamicExpRet = computeEconometricDrift(bars, s.symbol, horizon, opts?.entryIdx)
+  const expRet = dynamicExpRet * driftMultiplier
   const swing = 1.2 * sigmaH
   // Institutional Downside Tail Risk (CVaR equivalent) scales with sqrt(horizon).
   const tail = -Math.max(0.012, 1.85 * sigmaH)

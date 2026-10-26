@@ -194,11 +194,12 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
     const entryBar = bars[entryIdx]
     const p0 = entryBar ? entryBar.c : s.price
 
-    // Unified model forecast on the selected entry date
+    // Unified model forecast on the selected entry date (calibrated to historical bars up to entryIdx)
     const fc = forecast(s, p0, horizon, {
       feature,
       returnModel,
       riskModel,
+      entryIdx,
     })
 
     const targetPct = (fc.target - p0) / p0
