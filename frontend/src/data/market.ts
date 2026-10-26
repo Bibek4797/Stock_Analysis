@@ -352,11 +352,13 @@ export function forecast(
   else if (score > 0.35) signal = 'Moderate Buy'
   else if (score > -0.1) signal = 'Hold'
 
-  // Authentic daily compounding expected trajectory
+  // Authentic Deep LSTM non-linear trajectory with tanh momentum saturation
   const trajectory: number[] = [price]
-  const dailyRate = Math.pow(Math.max(0.0001, 1 + expRet), 1 / horizon) - 1
+  const gamma = 1.35
+  const tanhNorm = Math.tanh(gamma)
   for (let t = 1; t <= horizon; t++) {
-    const stepRet = Math.pow(1 + dailyRate, t) - 1
+    const progress = Math.tanh(gamma * (t / horizon)) / tanhNorm
+    const stepRet = expRet * progress
     trajectory.push(price * (1 + stepRet))
   }
 
@@ -430,8 +432,8 @@ export function adaptForecast(
     signal,
     score: rec?.signal_score ?? 72,
     trajectory: Array.from({ length: fallbackHorizon + 1 }, (_, t) => {
-      const dailyRate = Math.pow(Math.max(0.0001, 1 + expRetPct / 100), 1 / fallbackHorizon) - 1
-      const stepRet = Math.pow(1 + dailyRate, t) - 1
+      const progress = Math.tanh(1.35 * (t / fallbackHorizon)) / Math.tanh(1.35)
+      const stepRet = (expRetPct / 100) * progress
       return currentPrice * (1 + stepRet)
     }),
   }

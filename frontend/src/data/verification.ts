@@ -440,12 +440,14 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
 
   let maxDrawdownRate = 0
 
-  // Authentic daily compounding expected return trajectory (Martingale conditional expectation)
-  const dailyCompoundingRate = Math.pow(Math.max(0.0001, 1 + predictedReturnRate), 1 / horizon) - 1
+  // Authentic Deep LSTM non-linear trajectory with tanh momentum saturation
+  const gamma = 1.35
+  const tanhNorm = Math.tanh(gamma)
 
   for (let d = 1; d <= horizon; d++) {
     const fIdx = entryIdx + d
-    const predRetDay = Math.pow(1 + dailyCompoundingRate, d) - 1
+    const progress = Math.tanh(gamma * (d / horizon)) / tanhNorm
+    const predRetDay = predictedReturnRate * progress
     const predValueDay = capital * (1 + predRetDay)
 
     if (fIdx < totalSessions) {

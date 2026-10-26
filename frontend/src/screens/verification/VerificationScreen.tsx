@@ -274,9 +274,9 @@ export function VerificationScreen({
   ])
 
   // SVG Chart Dimensions
-  const chartW = 740
+  const chartW = 820
   const chartH = 220
-  const padL = 60
+  const padL = 115
   const padR = 40
   const padT = 20
   const padB = 30
@@ -682,13 +682,13 @@ export function VerificationScreen({
                     x2={chartW - padR}
                     y2={y}
                     stroke="#1E2430"
-                    strokeDasharray={pctg === 0.5 ? 'none' : '3 3'}
+                    strokeDasharray="3 3"
                   />
                   <text
-                    x={padL - 8}
+                    x={padL - 10}
                     y={y + 3.5}
                     textAnchor="end"
-                    fill="#6F7888"
+                    fill="#8A93A4"
                     fontSize="10"
                     fontFamily="monospace"
                   >
@@ -697,6 +697,26 @@ export function VerificationScreen({
                 </g>
               )
             })}
+
+            {/* Breakeven / Capital Baseline (0.0% Entry Level) */}
+            <line
+              x1={padL}
+              y1={getY(capital)}
+              x2={chartW - padR}
+              y2={getY(capital)}
+              stroke="#475569"
+              strokeWidth="1.5"
+              strokeDasharray="4 3"
+            />
+            <text
+              x={chartW - padR + 6}
+              y={getY(capital) + 3}
+              fill="#94A3B8"
+              fontSize="9"
+              fontFamily="monospace"
+            >
+              0.0% (Entry)
+            </text>
 
             {/* Vertical Day Lines */}
             {report.timeline.map((t) => {
@@ -735,15 +755,24 @@ export function VerificationScreen({
               points={predPoints}
             />
 
-            {/* Settled Realized Trajectory Line */}
-            {settledPoints && (
-              <polyline
-                fill="none"
-                stroke={report.realizedReturnRate >= 0 ? '#10B981' : '#F43F5E'}
-                strokeWidth="3"
-                points={settledPoints}
-              />
-            )}
+            {/* Settled Realized Trajectory Segments (Color-coded by profit/loss) */}
+            {report.timeline.map((t, idx) => {
+              if (idx === 0 || !t.isSettled) return null
+              const prev = report.timeline[idx - 1]
+              const isProfit = t.portfolioValue >= capital
+              return (
+                <line
+                  key={`seg-${t.day}`}
+                  x1={getX(prev.day)}
+                  y1={getY(prev.portfolioValue)}
+                  x2={getX(t.day)}
+                  y2={getY(t.portfolioValue)}
+                  stroke={isProfit ? '#10B981' : '#F43F5E'}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+              )
+            })}
 
             {/* Active / In-Progress Dashed Line */}
             {!report.isFullySettled && (

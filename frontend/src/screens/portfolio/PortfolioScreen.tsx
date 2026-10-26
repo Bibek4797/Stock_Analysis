@@ -1823,8 +1823,16 @@ export function PortfolioScreen({
 
 
       <section className="grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-2 xl:grid-cols-4">
-
-
+        <Stat
+          label={`Expected return · ${horizon}D`}
+          tone={portfolio.expRet >= 0 ? 'up' : 'down'}
+          value={<span className="num">{pct(portfolio.expRet)}</span>}
+          sub={
+            <span className="num">
+              {inrSigned(portfolio.expRet * capital)} · {pct(Math.pow(Math.max(0.0001, 1 + portfolio.expRet), 252 / horizon) - 1, 1)} p.a.
+            </span>
+          }
+        />
 
         <Stat
           label="Portfolio CVaR 95%"
@@ -1837,60 +1845,30 @@ export function PortfolioScreen({
           }
         />
 
-
-
         <Stat
-
-
-
-          label="Cash shield · LIQUIDBEES"
-
-
-
-          value={
-
-
-
-            <span className="num">
-
-
-
-              {(portfolio.cash.weight * 100).toFixed(1)}%
-
-
-
-            </span>
-
-
-
-          }
-
-
-
+          label="Turnover saved · deadband"
+          tone="up"
+          value={<span className="num">{inr(totalBuffer)}</span>}
           sub={
-
-
-
-            <span className="num">
-
-
-
-              {inr(portfolio.cash.invested)} overnight · ~6.5% yield
-
-
-
+            <span className="num text-fg-3">
+              Friction alpha saved via 1% deadband rebalancing
             </span>
-
-
-
           }
-
-
-
         />
 
-
-
+        <Stat
+          label="Cash shield · LIQUIDBEES"
+          value={
+            <span className="num">
+              {(portfolio.cash.weight * 100).toFixed(1)}%
+            </span>
+          }
+          sub={
+            <span className="num">
+              {inr(portfolio.cash.invested)} overnight · ~6.5% yield
+            </span>
+          }
+        />
       </section>
 
 

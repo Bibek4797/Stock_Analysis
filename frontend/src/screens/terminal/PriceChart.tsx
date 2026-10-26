@@ -145,10 +145,11 @@ export function PriceChart({
   const cone = useMemo(
     () =>
       Array.from({ length: H + 1 }, (_, t) => {
+        const progress = Math.tanh(1.35 * (t / H)) / Math.tanh(1.35)
         const mean =
           fc.trajectory && fc.trajectory[t] !== undefined
             ? fc.trajectory[t]
-            : price * Math.pow(Math.max(0.0001, 1 + fc.expRet), t / H)
+            : price * (1 + fc.expRet * progress)
         const s = dv * Math.sqrt(t)
         return {
           t,
