@@ -356,15 +356,23 @@ export function adaptForecast(
   else if (v.includes('MODERATE')) signal = 'Moderate Buy'
   else if (v.includes('AVOID') || v.includes('SELL')) signal = 'Avoid'
 
-  const expRetPct = cm?.expected_return_pct ?? 2.1
-  const volPct = cm?.volatility_pct ?? 2.4
-  const annVolPct = cm?.annualized_vol_pct ?? (volPct * Math.sqrt(252 / (qf.horizon || fallbackHorizon)))
-  const cvarPct = cm?.cvar_95_pct ?? 3.2
-  const target = cm?.target_price ?? (currentPrice * (1 + expRetPct / 100))
-  const stop = gtt?.stop_loss_gtt ?? (currentPrice * (1 - Math.abs(cvarPct) / 100))
+  const baseH = qf.horizon || fallbackHorizon
+  const hScale = Math.sqrt(fallbackHorizon / Math.max(1, baseH))
+  const hLinear = fallbackHorizon / Math.max(1, baseH)
+
+  const expRetPct = (cm?.expected_return_pct ?? 2.1) * hLinear
+  const volPct = (cm?.volatility_pct ?? 2.4) * hScale
+  const annVolPct = cm?.annualized_vol_pct ?? (volPct * Math.sqrt(252 / fallbackHorizon))
+  const cvarPct = (cm?.cvar_95_pct ?? 3.2) * hScale
+
+  const baseTargetProfitPct = cm?.target_price ? (cm.target_price / currentPrice - 1) : (expRetPct / 100)
+  const baseStopTailPct = gtt?.stop_loss_gtt ? (gtt.stop_loss_gtt / currentPrice - 1) : (-Math.abs(cvarPct) / 100)
+
+  const target = currentPrice * (1 + Math.max(0.012, baseTargetProfitPct * hScale))
+  const stop = currentPrice * (1 + Math.min(-0.01, baseStopTailPct * hScale))
 
   return {
-    horizon: qf.horizon ?? fallbackHorizon,
+    horizon: fallbackHorizon,
     price: currentPrice,
     expRet: expRetPct / 100,
     sigmaH: volPct / 100,

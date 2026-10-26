@@ -509,6 +509,18 @@ export function VerificationScreen({
               />
             )}
 
+            {/* Active / In-Progress Dashed Line */}
+            {!report.isFullySettled && (
+              <polyline
+                fill="none"
+                stroke="#F59E0B"
+                strokeWidth="2"
+                strokeDasharray="4 3"
+                opacity="0.75"
+                points={report.timeline.map((t) => `${getX(t.day).toFixed(1)},${getY(t.portfolioValue).toFixed(1)}`).join(' ')}
+              />
+            )}
+
             {/* Data Dots for each day */}
             {report.timeline.map((t) => {
               const x = getX(t.day)
@@ -783,23 +795,36 @@ export function VerificationScreen({
                           <span>STOP BREACHED</span>
                         </span>
                       )}
-                      {row.status === 'PROFIT' && (
-                        <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-2 py-0.5 text-[10.5px] font-bold text-emerald-400">
-                          <TrendingUp className="size-3" />
-                          <span>IN PROFIT</span>
-                        </span>
+                      {row.status !== 'TARGET_HIT' && row.status !== 'STOP_BREACHED' && report.isFullySettled && (
+                        row.realizedReturnPct >= 0 ? (
+                          <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-2 py-0.5 text-[10.5px] font-bold text-emerald-400">
+                            <TrendingUp className="size-3" />
+                            <span>COMPLETED (+{row.realizedReturnPct.toFixed(2)}%)</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded bg-rose-500/10 px-2 py-0.5 text-[10.5px] font-bold text-rose-400">
+                            <TrendingDown className="size-3" />
+                            <span>COMPLETED ({row.realizedReturnPct.toFixed(2)}%)</span>
+                          </span>
+                        )
                       )}
-                      {row.status === 'LOSS' && (
-                        <span className="inline-flex items-center gap-1 rounded bg-rose-500/10 px-2 py-0.5 text-[10.5px] font-bold text-rose-400">
-                          <TrendingDown className="size-3" />
-                          <span>IN LOSS</span>
-                        </span>
-                      )}
-                      {row.status === 'IN_PROGRESS' && (
-                        <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-2 py-0.5 text-[10.5px] font-bold text-amber-400">
-                          <Clock className="size-3" />
-                          <span>IN PROGRESS</span>
-                        </span>
+                      {row.status !== 'TARGET_HIT' && row.status !== 'STOP_BREACHED' && !report.isFullySettled && (
+                        report.settledDays > 0 ? (
+                          <span className={cx(
+                            'inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10.5px] font-bold border',
+                            row.realizedReturnPct >= 0
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                              : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                          )}>
+                            <Clock className="size-3" />
+                            <span>ACTIVE ({row.realizedReturnPct >= 0 ? '+' : ''}{row.realizedReturnPct.toFixed(2)}%)</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-2 py-0.5 text-[10.5px] font-bold text-amber-400">
+                            <Clock className="size-3" />
+                            <span>ENTRY SESSION</span>
+                          </span>
+                        )
                       )}
                     </td>
                   </tr>

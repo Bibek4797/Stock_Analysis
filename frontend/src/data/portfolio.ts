@@ -371,13 +371,13 @@ export function adaptPortfolio(
     const defaultExpRet = Math.max(0.012, (s.drift ?? 0.004) * horizon)
     const defaultTail = -Math.max(0.012, 1.85 * sigmaH)
     
-    const targetPrice = b.target_profit_gtt && b.latest_ltp
-      ? (currentPrice * (b.target_profit_gtt / b.latest_ltp))
-      : (currentPrice * (1 + Math.max(defaultExpRet, 1.5 * sigmaH)))
-      
-    const stopPrice = b.stop_loss_gtt && b.latest_ltp
-      ? (currentPrice * (b.stop_loss_gtt / b.latest_ltp))
-      : (currentPrice * (1 + defaultTail))
+    const backendH = pr.horizon || 5
+    const hScale = Math.sqrt(horizon / Math.max(1, backendH))
+    const rawTargetPct = b.target_profit_gtt && b.latest_ltp ? (b.target_profit_gtt / b.latest_ltp - 1) : Math.max(defaultExpRet, 1.5 * sigmaH)
+    const rawStopPct = b.stop_loss_gtt && b.latest_ltp ? (b.stop_loss_gtt / b.latest_ltp - 1) : defaultTail
+
+    const targetPrice = currentPrice * (1 + Math.max(0.012, rawTargetPct * hScale))
+    const stopPrice = currentPrice * (1 + Math.min(-0.01, rawStopPct * hScale))
 
     const expRet = (targetPrice / currentPrice) - 1
     const tail = (stopPrice / currentPrice) - 1

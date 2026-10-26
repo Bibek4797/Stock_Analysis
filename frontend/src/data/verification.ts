@@ -233,13 +233,37 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
     }
   })
 
-  // Pick top 8 or custom selection
+  // Pick candidate stocks according to the strategy's core selection philosophy
   let selected = scored
   if (!opts.selectedSymbols || opts.selectedSymbols.length === 0) {
-    selected = scored
-      .filter((x) => x.score > 0.1 || x.stock.sector === 'Bank' || x.stock.sector === 'IT' || x.stock.sector === 'Energy')
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 8)
+    if (resolvedStrategy === 'trc') {
+      // Ray Dalio All-Weather Risk Parity: 1 top quality stock per sector, sorted by lowest vol
+      const bySector = new Map<string, (typeof scored)[0]>()
+      const sortedByLowVol = [...scored].sort((a, b) => a.effVol - b.effVol)
+      for (const item of sortedByLowVol) {
+        if (!bySector.has(item.stock.sector)) {
+          bySector.set(item.stock.sector, item)
+        }
+      }
+      selected = Array.from(bySector.values()).slice(0, 8)
+    } else if (resolvedStrategy === 'mpt') {
+      // Markowitz MPT: Maximize Sharpe Ratio (score / effVol)
+      selected = [...scored]
+        .sort((a, b) => (b.score / Math.max(0.01, b.effVol)) - (a.score / Math.max(0.01, a.effVol)))
+        .slice(0, 8)
+    } else if (resolvedStrategy === 'equal') {
+      // Equal Weight: Top largecap core names
+      selected = [...scored]
+        .filter((x) => ['Bank', 'IT', 'Energy', 'Auto', 'FMCG'].includes(x.stock.sector))
+        .sort((a, b) => b.p0 - a.p0)
+        .slice(0, 8)
+    } else {
+      // Rockafellar CVaR: Maximize tail return over downside expected shortfall
+      selected = [...scored]
+        .filter((x) => x.score > 0.1 || ['Bank', 'IT', 'Energy'].includes(x.stock.sector))
+        .sort((a, b) => (b.score / Math.max(0.005, Math.abs(b.tail))) - (a.score / Math.max(0.005, Math.abs(a.tail))))
+        .slice(0, 8)
+    }
   }
 
   if (selected.length === 0) {
@@ -354,10 +378,17 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
     const realizedPnl = shares * (finalClose - item.p0)
 
     let status: AssetOutcome = 'IN_PROGRESS'
-    if (hitTarget) status = 'TARGET_HIT'
-    else if (hitStop) status = 'STOP_BREACHED'
-    else if (realizedReturnPct > 0.05) status = 'PROFIT'
-    else if (realizedReturnPct < -0.05) status = 'LOSS'
+    if (hitTarget) {
+      status = 'TARGET_HIT'
+    } else if (hitStop) {
+      status = 'STOP_BREACHED'
+    } else if (isFullySettled) {
+      if (realizedReturnPct > 0.05) status = 'PROFIT'
+      else if (realizedReturnPct < -0.05) status = 'LOSS'
+      else status = 'IN_PROGRESS'
+    } else {
+      status = 'IN_PROGRESS'
+    }
 
     return {
       symbol: item.stock.symbol,
