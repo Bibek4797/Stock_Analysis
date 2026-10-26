@@ -442,17 +442,12 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
 
   let maxDrawdownRate = 0
 
+  // Authentic daily compounding expected return trajectory (Martingale conditional expectation)
+  const dailyCompoundingRate = Math.pow(Math.max(0.0001, 1 + predictedReturnRate), 1 / horizon) - 1
+
   for (let d = 1; d <= horizon; d++) {
     const fIdx = entryIdx + d
-    // Non-linear trajectory matching Deep LSTM temporal memory and MLP bottleneck curvature
-    const isLstm = returnModel === 'lstm'
-    const isMlp = feature === 'mlp'
-    const curvature = isLstm ? 0.82 : isMlp ? 0.88 : 0.95
-    const waveAmp = isLstm ? 0.16 : isMlp ? 0.10 : 0.04
-    const progress = d / horizon
-    const nonLinearProgress = Math.pow(progress, curvature)
-    const harmonic = Math.sin((d * Math.PI) / horizon) * waveAmp * (predictedReturnRate > 0 ? 0.35 : -0.35)
-    const predRetDay = predictedReturnRate * nonLinearProgress + harmonic
+    const predRetDay = Math.pow(1 + dailyCompoundingRate, d) - 1
     const predValueDay = capital * (1 + predRetDay)
 
     if (fIdx < totalSessions) {

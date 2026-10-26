@@ -352,18 +352,11 @@ export function forecast(
   else if (score > 0.35) signal = 'Moderate Buy'
   else if (score > -0.1) signal = 'Hold'
 
-  // Non-linear trajectory generation (Deep LSTM temporal memory & MLP latent manifold)
+  // Authentic daily compounding expected trajectory
   const trajectory: number[] = [price]
-  const isLstm = retSel === 'lstm'
-  const isMlp = feature === 'mlp'
-  const curvature = isLstm ? 0.82 : isMlp ? 0.88 : 0.95
-  const waveAmp = isLstm ? 0.20 : isMlp ? 0.12 : 0.05
-
+  const dailyRate = Math.pow(Math.max(0.0001, 1 + expRet), 1 / horizon) - 1
   for (let t = 1; t <= horizon; t++) {
-    const progress = t / horizon
-    const nonLinearProgress = Math.pow(progress, curvature)
-    const harmonic = Math.sin((t * Math.PI) / horizon) * waveAmp * sigmaH
-    const stepRet = expRet * nonLinearProgress + harmonic
+    const stepRet = Math.pow(1 + dailyRate, t) - 1
     trajectory.push(price * (1 + stepRet))
   }
 
@@ -437,8 +430,8 @@ export function adaptForecast(
     signal,
     score: rec?.signal_score ?? 72,
     trajectory: Array.from({ length: fallbackHorizon + 1 }, (_, t) => {
-      const p = t / fallbackHorizon
-      const stepRet = (expRetPct / 100) * Math.pow(p, 0.84) + Math.sin((t * Math.PI) / fallbackHorizon) * 0.18 * (volPct / 100)
+      const dailyRate = Math.pow(Math.max(0.0001, 1 + expRetPct / 100), 1 / fallbackHorizon) - 1
+      const stepRet = Math.pow(1 + dailyRate, t) - 1
       return currentPrice * (1 + stepRet)
     }),
   }

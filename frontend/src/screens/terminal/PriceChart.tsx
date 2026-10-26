@@ -145,14 +145,10 @@ export function PriceChart({
   const cone = useMemo(
     () =>
       Array.from({ length: H + 1 }, (_, t) => {
-        // Non-linear trajectory from Deep LSTM / MLP bottleneck model
         const mean =
           fc.trajectory && fc.trajectory[t] !== undefined
             ? fc.trajectory[t]
-            : price *
-              (1 +
-                fc.expRet * Math.pow(t / H, 0.82) +
-                (t > 0 && t < H ? Math.sin((t * Math.PI) / H) * 0.18 * fc.sigmaH : 0))
+            : price * Math.pow(Math.max(0.0001, 1 + fc.expRet), t / H)
         const s = dv * Math.sqrt(t)
         return {
           t,
@@ -163,7 +159,7 @@ export function PriceChart({
           l2: mean * (1 - 1.96 * s),
         }
       }),
-    [H, price, fc.expRet, fc.trajectory, fc.sigmaH, dv],
+    [H, price, fc.expRet, fc.trajectory, dv],
   )
 
   // ---- layout
