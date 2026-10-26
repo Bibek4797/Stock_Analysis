@@ -254,25 +254,20 @@ def classify_nifty_regime(
     else:
         vol_pctile = 50.0
 
-    # Classification logic
-    if latest_price < sma_200 or vol_pctile > 75.0 or max_dd_60_pct < -5.0:
-        regime = "BEAR / TAIL-STRESS REGIME"
+    # Classification logic: Crash -> Rockafellar-Uryasev CVaR, Otherwise -> Ray Dalio Equal TRC
+    is_crash = latest_price < sma_200 or vol_pctile > 75.0 or max_dd_60_pct < -5.0 or ret_20d_pct < -3.5
+    if is_crash:
+        regime = "CRASH / TAIL-STRESS REGIME"
         badge_color = "rose"
         active_strategy = "rockafellar_cvar"
         active_strategy_name = "Rockafellar-Uryasev Min-CVaR"
-        rationale = "High tail-risk / downside stress detected. Minimizing expected shortfall (CVaR) with heavy defensive ballast allocation."
-    elif vol_pctile >= 48.0 or abs(ret_20d_pct) < 2.0 or max_dd_60_pct < -3.0:
-        regime = "SIDEWAYS / VOLATILE TRANSITION REGIME"
-        badge_color = "amber"
+        rationale = "Crash / tail-stress regime detected (Nifty drawdown > 5% or below 200 SMA). Min-CVaR active to curtail catastrophic shortfall."
+    else:
+        regime = "NORMAL / ALL-WEATHER REGIME"
+        badge_color = "emerald"
         active_strategy = "dalio_trc"
         active_strategy_name = "Ray Dalio Equal TRC (Risk Parity)"
-        rationale = "Mixed directional momentum and intermediate volatility. Equalizing marginal risk contribution (ERC) across assets."
-    else:
-        regime = "BULL / MOMENTUM EXPANSION REGIME"
-        badge_color = "emerald"
-        active_strategy = "mpt"
-        active_strategy_name = "Markowitz MPT (Shrinkage Max Sharpe)"
-        rationale = "NIFTY above 200 SMA with low/contained volatility and positive 20D drift. Maximizing Sharpe ratio for capital expansion."
+        rationale = "Non-crash market conditions. Ray Dalio Equal TRC active to equalize total risk contribution across all assets."
 
     return {
         "regime": regime,

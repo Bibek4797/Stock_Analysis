@@ -1,6 +1,6 @@
 import REAL_HISTORY_DATA from './real_history.json'
 import { STOCKS, STOCK_MAP, forecast, type Stock, type Bar } from './market'
-import type { Strategy } from './portfolio'
+import { resolveAutoStrategy, type Strategy } from './portfolio'
 import type { FeatureSet, ReturnModelSel, RiskModelSel } from './validation'
 
 export interface HistoricalSession {
@@ -170,12 +170,10 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
   const settledDays = Math.min(horizon, availableForward)
   const isFullySettled = settledDays === horizon
 
-  // Strategy resolution
+  // Strategy resolution: If market is in a crash situation -> CVaR, otherwise -> Ray Dalio Equal TRC
   const resolvedStrategy: Strategy =
     stratMode === 'auto'
-      ? entrySession.dayOfWeek === 'Mon' || entrySession.dayOfWeek === 'Wed'
-        ? 'cvar'
-        : 'trc'
+      ? resolveAutoStrategy(entryIdx)
       : stratMode
 
   // Candidate symbols: custom selection or top quality universe

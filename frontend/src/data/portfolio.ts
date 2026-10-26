@@ -1,5 +1,6 @@
 import { CASH_ETF, STOCKS, STOCK_MAP, forecast, gauss, hashStr, rng, type Forecast, type Stock } from './market'
 import type { PortfolioResponse } from '@/types'
+import REAL_HISTORY_DATA from './real_history.json'
 export type Strategy = 'cvar' | 'trc' | 'mpt' | 'equal'
 export const STRATEGIES: Strategy[] = ['cvar', 'trc', 'mpt', 'equal']
 export const STRATEGY_META: Record<Strategy | 'nifty', { name: string; desc: string; color: string }> = {
@@ -53,12 +54,69 @@ export const FEE_RATE = 0.001 + 0.0000297 + 0.000001 + 0.00015 + 0.18 * (0.00002
 const RHO = 0.55
 const MAX_W = 0.18
 const DEADBAND = 0.01
-export function marketRegime(): Regime {
+export function isMarketInCrash(entryIndex?: number): {
+  isCrash: boolean
+  drawdown60: number
+  priceVsSma200: number
+  ret20d: number
+  rationale: string
+} {
+  const bars =
+    (REAL_HISTORY_DATA as Record<string, { t: number; c: number }[]>)['NIFTYBEES'] ||
+    (REAL_HISTORY_DATA as Record<string, { t: number; c: number }[]>)['NIFTYBEES.NS'] ||
+    []
+
+  if (!bars || bars.length === 0) {
+    return {
+      isCrash: false,
+      drawdown60: 0,
+      priceVsSma200: 0,
+      ret20d: 0,
+      rationale: 'Benchmark data unavailable; defaulting to Ray Dalio All-Weather Risk Parity.',
+    }
+  }
+
+  const idx = entryIndex !== undefined ? Math.min(entryIndex, bars.length - 1) : bars.length - 1
+  const subBars = bars.slice(0, idx + 1)
+  const closes = subBars.map((b) => b.c)
+  const currentPrice = closes[closes.length - 1]
+
+  // 1. 60-day maximum drawdown from peak
+  const window60 = closes.slice(Math.max(0, closes.length - 60))
+  const peak60 = Math.max(...window60)
+  const dd60 = ((currentPrice - peak60) / peak60) * 100
+
+  // 2. 200-day Simple Moving Average (SMA 200)
+  const window200 = closes.slice(Math.max(0, closes.length - 200))
+  const sma200 = window200.reduce((a, b) => a + b, 0) / window200.length
+  const priceVsSma200 = ((currentPrice - sma200) / sma200) * 100
+
+  // 3. 20-day trailing return
+  const p20Ago = closes[Math.max(0, closes.length - 21)]
+  const ret20d = ((currentPrice - p20Ago) / p20Ago) * 100
+
+  // Market Crash / Tail-Stress Condition: Drawdown > 5% OR Price below 200 SMA OR 20D selloff < -3.5%
+  const isCrash = dd60 < -5.0 || priceVsSma200 < -1.0 || ret20d < -3.5
+
+  const rationale = isCrash
+    ? `Market crash / tail-stress regime detected (Nifty DD ${dd60.toFixed(1)}%, vs SMA200 ${priceVsSma200.toFixed(1)}%). Rockafellar-Uryasev Min-CVaR deployed to curtail shortfall.`
+    : `Normal / steady market conditions (Nifty DD ${dd60.toFixed(1)}%, vs SMA200 ${priceVsSma200.toFixed(1)}%). Ray Dalio Equal TRC deployed to balance total risk contribution.`
+
+  return { isCrash, drawdown60: dd60, priceVsSma200, ret20d, rationale }
+}
+
+export function resolveAutoStrategy(entryIndex?: number): Strategy {
+  const { isCrash } = isMarketInCrash(entryIndex)
+  return isCrash ? 'cvar' : 'trc'
+}
+
+export function marketRegime(entryIndex?: number): Regime {
+  const { isCrash } = isMarketInCrash(entryIndex)
+  if (isCrash) return 'defensive'
   const eq = STOCKS.filter((s) => s.sector !== 'ETF')
   const breadth = eq.reduce((a, s) => a + s.drift / (s.vol / Math.sqrt(252)), 0) / eq.length
   if (breadth > 0.2) return 'bullish'
-  if (breadth > 0.08) return 'balanced'
-  return 'defensive'
+  return 'balanced'
 }
 
 function capWeights(raw: number[], total: number, maxW: number = MAX_W): number[] {
@@ -378,9 +436,7 @@ export function getBacktest(): Backtest {
 
   const order: Array<Strategy | 'nifty'> = ['cvar', 'trc', 'mpt', 'equal', 'nifty']
   const stats = order.map((k) => statsFor(k, rets[k], params[k].train, params[k].turn))
-  const winner = stats
-    .filter((s) => s.key !== 'nifty')
-    .reduce((best, s) => (s.sharpe > best.sharpe ? s : best)).key as Strategy
+  const winner = resolveAutoStrategy()
   backtestCache = { dates, wealth, drawdown, stats, winner }
 
   return backtestCache
@@ -583,9 +639,10 @@ export function adaptBacktest(pr: PortfolioResponse): Backtest {
       turnoverSaved: null,
     },
   ]
-  let winner: Strategy = 'cvar'
+  let winner: Strategy = resolveAutoStrategy()
   if (pr.resolved_strategy === 'mpt') winner = 'mpt'
   else if (pr.resolved_strategy === 'dalio_trc') winner = 'trc'
+  else if (pr.resolved_strategy === 'rockafellar_cvar') winner = 'cvar'
   else if (pr.resolved_strategy === 'equal_weight') winner = 'equal'
   // If backend provided real equity curve series
 

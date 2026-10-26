@@ -12,7 +12,7 @@ const CAPITAL_PRESETS = [
 ]
 const HORIZONS = [3, 5, 7, 10]
 
-import type { Strategy } from '@/data/portfolio'
+import { resolveAutoStrategy, type Strategy } from '@/data/portfolio'
 
 export function Sidebar({
   capital,
@@ -151,7 +151,7 @@ export function Sidebar({
         <div>
           <div className="mb-1.5 flex items-center justify-between">
             <Label>Portfolio Theory</Label>
-            <span className="text-[10px] text-accent font-semibold uppercase">{strategyMode}</span>
+            <span className="text-[10px] text-accent font-semibold uppercase">{strategyMode === 'auto' ? `Auto (${resolveAutoStrategy().toUpperCase()})` : strategyMode}</span>
           </div>
           <Seg
             label="Optimization strategy"
