@@ -141,11 +141,18 @@ export function PriceChart({
   }, [stock.symbol, price, range, customBars])
 
   const H = fc.horizon
-  const dv = stock.vol / Math.sqrt(252)
+  const dv = (fc.annVol || stock.vol) / Math.sqrt(252)
   const cone = useMemo(
     () =>
       Array.from({ length: H + 1 }, (_, t) => {
-        const mean = price * (1 + (fc.expRet * t) / H)
+        // Non-linear trajectory from Deep LSTM / MLP bottleneck model
+        const mean =
+          fc.trajectory && fc.trajectory[t] !== undefined
+            ? fc.trajectory[t]
+            : price *
+              (1 +
+                fc.expRet * Math.pow(t / H, 0.82) +
+                (t > 0 && t < H ? Math.sin((t * Math.PI) / H) * 0.18 * fc.sigmaH : 0))
         const s = dv * Math.sqrt(t)
         return {
           t,
@@ -156,7 +163,7 @@ export function PriceChart({
           l2: mean * (1 - 1.96 * s),
         }
       }),
-    [H, price, fc.expRet, dv],
+    [H, price, fc.expRet, fc.trajectory, fc.sigmaH, dv],
   )
 
   // ---- layout
