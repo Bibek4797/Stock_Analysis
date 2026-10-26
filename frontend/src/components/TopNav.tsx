@@ -4,12 +4,13 @@ import { StatusDot } from './ui'
 import type { UserAccount } from '@/lib/auth'
 import { Shield, User, LogOut } from 'lucide-react'
 
-export type Tab = 'terminal' | 'risk' | 'portfolio' | 'admin'
+export type Tab = 'terminal' | 'risk' | 'portfolio' | 'verification' | 'admin'
 
 const BASE_TABS: Array<{ id: Tab; label: string; key: string }> = [
   { id: 'terminal', label: 'Terminal', key: '1' },
   { id: 'risk', label: 'Returns & Risk', key: '2' },
   { id: 'portfolio', label: 'Portfolio Manager', key: '3' },
+  { id: 'verification', label: 'Model Verification', key: '4' },
 ]
 
 export function TopNav({
@@ -33,7 +34,7 @@ export function TopNav({
   const statusTone = open ? 'up' : status === 'PRE-OPEN' ? 'warn' : 'neutral'
 
   const tabs = currentUser?.role === 'admin'
-    ? [...BASE_TABS, { id: 'admin' as Tab, label: 'Admin', key: '4' }]
+    ? [...BASE_TABS, { id: 'admin' as Tab, label: 'Admin', key: '5' }]
     : BASE_TABS
 
   return (

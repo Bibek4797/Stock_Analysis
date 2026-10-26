@@ -35,7 +35,8 @@ import { TopNav, type Tab } from '@/components/TopNav'
 import { useISTClock, useLivePrices } from '@/lib/hooks'
 import { TerminalScreen } from '@/screens/terminal/TerminalScreen'
 import { RiskScreen } from '@/screens/risk/RiskScreen'
-import { PortfolioScreen } from '@/screens/portfolio/PortfolioScreen'
+import { PortfolioScreen } from '@/screens/portfolio/PortfolioScreen'
+import { VerificationScreen } from '@/screens/verification/VerificationScreen'
 import { AdminScreen } from '@/screens/admin/AdminScreen'
 import { LoginScreen } from '@/screens/auth/LoginScreen'
 import { getCurrentUser, logout, syncUsersWithServer, type UserAccount } from '@/lib/auth'
@@ -364,6 +365,23 @@ export default function App() {
             />
           </div>
         )}
+        {tab === 'verification' && (
+          <div className="w-full pb-16">
+            <VerificationScreen
+              capital={capital}
+              onCapital={setCapital}
+              horizon={horizon}
+              onHorizon={setHorizon}
+              strategyMode={strategyMode}
+              onStrategyMode={setStrategyMode}
+              selectedSymbols={selectedSymbols}
+              feature={feature}
+              returnModel={retSel}
+              riskModel={riskSel}
+              livePrices={{ ...simulatedTickPrices, ...livePriceMap }}
+            />
+          </div>
+        )}
         {tab === 'admin' && currentUser.role === 'admin' && (
           <div className="w-full pb-16">
             <AdminScreen
