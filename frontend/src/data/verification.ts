@@ -1,6 +1,5 @@
 import REAL_HISTORY_DATA from './real_history.json'
-import { STOCKS, STOCK_MAP, type Stock, type Bar } from './market'
-import { clamp } from '@/lib/format'
+import { STOCKS, STOCK_MAP, forecast, type Stock, type Bar } from './market'
 import type { Strategy } from './portfolio'
 import type { FeatureSet, ReturnModelSel, RiskModelSel } from './validation'
 
@@ -20,9 +19,9 @@ export interface DayStep {
   isToday: boolean
   portfolioValue: number
   pnl: number
-  returnPct: number
+  returnRate: number // fraction: -0.0118 for -1.18%
   predictedValue: number
-  predictedReturnPct: number
+  predictedReturnRate: number // fraction: 0.0185 for +1.85%
 }
 
 export interface StockDailyStep {
@@ -31,8 +30,8 @@ export interface StockDailyStep {
   price: number
   high: number
   low: number
-  changePct: number
-  returnFromEntryPct: number
+  changeRate: number // fraction
+  returnFromEntryRate: number // fraction
   isSettled: boolean
 }
 
@@ -48,11 +47,11 @@ export interface AssetVerificationRow {
   entryPrice: number
   targetPrice: number
   stopPrice: number
-  targetPct: number
-  stopPct: number
-  predictedReturnPct: number
+  targetPct: number // fraction
+  stopPct: number // fraction
+  predictedReturnRate: number // fraction
   currentPrice: number
-  realizedReturnPct: number
+  realizedReturnRate: number // fraction
   realizedPnl: number
   dailySteps: StockDailyStep[]
   status: AssetOutcome
@@ -71,17 +70,17 @@ export interface VerificationReport {
   returnModel: ReturnModelSel
   riskModel: RiskModelSel
 
-  // Summary Metrics
-  predictedReturnPct: number
+  // Summary Metrics (as fractions for pct() formatting)
+  predictedReturnRate: number // e.g. 0.0185 -> "+1.85%"
   predictedPnl: number
-  realizedReturnPct: number
+  realizedReturnRate: number // e.g. -0.0118 -> "-1.18%"
   realizedPnl: number
-  alphaDeviationPct: number
+  alphaDeviationRate: number // realizedReturnRate - predictedReturnRate (e.g. -0.0303 -> "-3.03%")
   directionalHit: boolean
   targetHitCount: number
   stopHitCount: number
-  winRatePct: number
-  maxDrawdownPct: number
+  winRatePct: number // percentage 0..100
+  maxDrawdownRate: number // fraction
 
   // Status
   totalDays: number
@@ -137,7 +136,7 @@ export function getHistoricalSessions(): HistoricalSession[] {
 }
 
 export interface RunVerificationOptions {
-  entryDateIndex?: number // if omitted, defaults to 245 (23 Oct 2026)
+  entryDateIndex?: number
   horizon: number // 3, 5, 7, 10
   capital: number
   strategy?: Strategy | 'auto'
@@ -162,7 +161,6 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
   // Default entry session to 23 Oct 2026 (index 245) or latest valid index
   let entryIdx = opts.entryDateIndex
   if (entryIdx === undefined || entryIdx < 0 || entryIdx >= totalSessions) {
-    // Default to Oct 23, 2026 if available, else latest - horizon
     const oct23 = sessions.find((s) => s.dateStr === '2026-10-23')
     entryIdx = oct23 ? oct23.index : Math.max(0, totalSessions - horizon - 1)
   }
@@ -186,50 +184,35 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
       ? opts.selectedSymbols.map((sym) => STOCK_MAP[sym]).filter(Boolean)
       : STOCKS.filter((s) => s.sector !== 'ETF')
 
-  // Analyze candidates at entry date (NO LOOKAHEAD BIAS)
+  // Generate authentic quant predictions at entry date (NO LOOKAHEAD BIAS)
+  // Calls the exact quantitative econometric forecast engine (MLP / SARIMAX / GJR-GARCH)
   const scored = pool.map((s) => {
     const bars = realHistoryMap[s.symbol] || []
     const entryBar = bars[entryIdx]
     const p0 = entryBar ? entryBar.c : s.price
 
-    // Calculate rolling drift and vol from authentic bars up to entryIdx
-    const pastBars = bars.slice(Math.max(0, entryIdx - 40), entryIdx + 1)
-    let sumRet = 0
-    let count = 0
-    for (let i = 1; i < pastBars.length; i++) {
-      sumRet += pastBars[i].c / pastBars[i - 1].c - 1
-      count++
-    }
-    const rollingDrift = count > 5 ? sumRet / count : s.drift
-    const effVol = s.vol * (riskModel === 'gjr' ? 1.02 : riskModel === 'hybrid' ? 0.96 : 1.0)
-    const effDv = effVol / Math.sqrt(252)
-    const sigmaH = effDv * Math.sqrt(horizon)
+    // Unified model forecast on the selected entry date
+    const fc = forecast(s, p0, horizon, {
+      feature,
+      returnModel,
+      riskModel,
+    })
 
-    // Expected return over horizon
-    let driftMultiplier = 1.0
-    if (feature === 'mlp') driftMultiplier += 0.05
-    if (returnModel === 'lstm') driftMultiplier += 0.09
-    else if (returnModel === 'sarimax') driftMultiplier += 0.03
-
-    const expRet = rollingDrift * driftMultiplier * horizon
-    const targetPct = Math.max(0.015, Math.max(expRet, 1.5 * sigmaH))
-    const stopPct = Math.max(0.012, 1.85 * sigmaH) // downside tail
-    const targetPrice = p0 * (1 + targetPct)
-    const stopPrice = p0 * (1 - stopPct)
-    const score = expRet / Math.max(0.001, sigmaH)
+    const targetPct = (fc.target - p0) / p0
+    const stopPct = (p0 - fc.stop) / p0
 
     return {
       stock: s,
       p0,
-      effVol,
-      sigmaH,
-      expRet,
-      targetPct,
-      stopPct,
-      targetPrice,
-      stopPrice,
-      score,
-      tail: -stopPct,
+      effVol: fc.annVol,
+      sigmaH: fc.sigmaH,
+      expRet: fc.expRet, // e.g. 0.0185 (+1.85%)
+      targetPct, // fraction
+      stopPct, // fraction
+      targetPrice: fc.target,
+      stopPrice: fc.stop,
+      score: fc.score,
+      tail: fc.tail,
     }
   })
 
@@ -290,7 +273,6 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
   const MAX_W = 0.18
   const sumRaw = rawWeights.reduce((a, b) => a + b, 0) || 1
   let weights = rawWeights.map((w) => (w / sumRaw) * deploy)
-  // Simple cap iteration
   for (let iter = 0; iter < 5; iter++) {
     let excess = 0
     let uncappedSum = 0
@@ -346,8 +328,8 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
         finalClose = close
         const prevBar = bars[fIdx - 1]
         const prevClose = prevBar ? prevBar.c : item.p0
-        const changePct = ((close - prevClose) / prevClose) * 100
-        const returnFromEntryPct = ((close - item.p0) / item.p0) * 100
+        const changeRate = (close - prevClose) / prevClose
+        const returnFromEntryRate = (close - item.p0) / item.p0
 
         dailySteps.push({
           day: d,
@@ -355,8 +337,8 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
           price: close,
           high,
           low,
-          changePct,
-          returnFromEntryPct,
+          changeRate,
+          returnFromEntryRate,
           isSettled: true,
         })
       } else {
@@ -367,14 +349,14 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
           price: finalClose,
           high: finalClose,
           low: finalClose,
-          changePct: 0,
-          returnFromEntryPct: ((finalClose - item.p0) / item.p0) * 100,
+          changeRate: 0,
+          returnFromEntryRate: (finalClose - item.p0) / item.p0,
           isSettled: false,
         })
       }
     }
 
-    const realizedReturnPct = ((finalClose - item.p0) / item.p0) * 100
+    const realizedReturnRate = (finalClose - item.p0) / item.p0
     const realizedPnl = shares * (finalClose - item.p0)
 
     let status: AssetOutcome = 'IN_PROGRESS'
@@ -383,8 +365,8 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
     } else if (hitStop) {
       status = 'STOP_BREACHED'
     } else if (isFullySettled) {
-      if (realizedReturnPct > 0.05) status = 'PROFIT'
-      else if (realizedReturnPct < -0.05) status = 'LOSS'
+      if (realizedReturnRate > 0.0005) status = 'PROFIT'
+      else if (realizedReturnRate < -0.0005) status = 'LOSS'
       else status = 'IN_PROGRESS'
     } else {
       status = 'IN_PROGRESS'
@@ -400,11 +382,11 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
       entryPrice: item.p0,
       targetPrice: item.targetPrice,
       stopPrice: item.stopPrice,
-      targetPct: item.targetPct * 100,
-      stopPct: item.stopPct * 100,
-      predictedReturnPct: item.expRet * 100,
+      targetPct: item.targetPct,
+      stopPct: item.stopPct,
+      predictedReturnRate: item.expRet,
       currentPrice: finalClose,
-      realizedReturnPct,
+      realizedReturnRate,
       realizedPnl,
       dailySteps,
       status,
@@ -415,11 +397,11 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
 
   const cashReserve = capital - totalInvestedStock
 
-  // Total Portfolio Expected Return (weighted sum)
-  const predictedReturnPct =
-    rows.reduce((sum, r) => sum + (r.invested / capital) * r.predictedReturnPct, 0) +
-    (cashReserve / capital) * (0.065 * (horizon / 252) * 100) // cash earn ~6.5% p.a.
-  const predictedPnl = capital * (predictedReturnPct / 100)
+  // Total Portfolio Expected Return (weighted sum fraction)
+  const predictedReturnRate =
+    rows.reduce((sum, r) => sum + (r.invested / capital) * r.predictedReturnRate, 0) +
+    (cashReserve / capital) * (0.065 * (horizon / 252)) // cash yield ~6.5% p.a.
+  const predictedPnl = capital * predictedReturnRate
 
   // Construct Day-by-Day Portfolio Timeline (Day 0 to Day H)
   const timeline: DayStep[] = []
@@ -432,17 +414,17 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
     isToday: entryIdx === totalSessions - 1,
     portfolioValue: capital,
     pnl: 0,
-    returnPct: 0,
+    returnRate: 0,
     predictedValue: capital,
-    predictedReturnPct: 0,
+    predictedReturnRate: 0,
   })
 
-  let maxDrawdownPct = 0
+  let maxDrawdownRate = 0
 
   for (let d = 1; d <= horizon; d++) {
     const fIdx = entryIdx + d
-    const predValueDay = capital * (1 + (predictedReturnPct / 100) * (d / horizon))
-    const predRetDay = predictedReturnPct * (d / horizon)
+    const predValueDay = capital * (1 + predictedReturnRate * (d / horizon))
+    const predRetDay = predictedReturnRate * (d / horizon)
 
     if (fIdx < totalSessions) {
       const sess = sessions[fIdx]
@@ -454,10 +436,10 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
       }
       const totalVal = stockVal + cashReserve
       const pnl = totalVal - capital
-      const returnPct = (pnl / capital) * 100
+      const returnRate = pnl / capital
 
-      const dd = ((capital - totalVal) / capital) * 100
-      if (dd > maxDrawdownPct) maxDrawdownPct = dd
+      const dd = (capital - totalVal) / capital
+      if (dd > maxDrawdownRate) maxDrawdownRate = dd
 
       timeline.push({
         day: d,
@@ -467,9 +449,9 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
         isToday: fIdx === totalSessions - 1,
         portfolioValue: totalVal,
         pnl,
-        returnPct,
+        returnRate,
         predictedValue: predValueDay,
-        predictedReturnPct: predRetDay,
+        predictedReturnRate: predRetDay,
       })
     } else {
       // Future pending session
@@ -482,26 +464,26 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
         isToday: false,
         portfolioValue: lastSettled.portfolioValue,
         pnl: lastSettled.pnl,
-        returnPct: lastSettled.returnPct,
+        returnRate: lastSettled.returnRate,
         predictedValue: predValueDay,
-        predictedReturnPct: predRetDay,
+        predictedReturnRate: predRetDay,
       })
     }
   }
 
   // Final summary statistics
   const latestStep = timeline[settledDays] || timeline[0]
-  const realizedReturnPct = latestStep.returnPct
+  const realizedReturnRate = latestStep.returnRate
   const realizedPnl = latestStep.pnl
-  const alphaDeviationPct = realizedReturnPct - predictedReturnPct
+  const alphaDeviationRate = realizedReturnRate - predictedReturnRate
 
   const directionalHit =
-    (predictedReturnPct >= 0 && realizedReturnPct >= 0) ||
-    (predictedReturnPct < 0 && realizedReturnPct < 0)
+    (predictedReturnRate >= 0 && realizedReturnRate >= 0) ||
+    (predictedReturnRate < 0 && realizedReturnRate < 0)
 
   const targetHitCount = rows.filter((r) => r.hitTarget).length
   const stopHitCount = rows.filter((r) => r.hitStop).length
-  const winRatePct = rows.length > 0 ? (rows.filter((r) => r.realizedReturnPct > 0).length / rows.length) * 100 : 0
+  const winRatePct = rows.length > 0 ? (rows.filter((r) => r.realizedReturnRate > 0).length / rows.length) * 100 : 0
 
   return {
     entryDateStr: entrySession.dateStr,
@@ -514,16 +496,16 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
     returnModel,
     riskModel,
 
-    predictedReturnPct,
+    predictedReturnRate,
     predictedPnl,
-    realizedReturnPct,
+    realizedReturnRate,
     realizedPnl,
-    alphaDeviationPct,
+    alphaDeviationRate,
     directionalHit,
     targetHitCount,
     stopHitCount,
     winRatePct,
-    maxDrawdownPct,
+    maxDrawdownRate,
 
     totalDays: horizon,
     settledDays,

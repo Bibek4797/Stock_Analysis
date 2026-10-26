@@ -280,31 +280,37 @@ export function VerificationScreen({
       {/* ── HERO KPI REALITY CHECK ROW ──────────────────── */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {/* KPI 1: Model Prediction */}
-        <div className="rounded-xl border border-line bg-surface p-4 flex flex-col justify-between">
+        <div className="rounded-xl border border-line bg-surface p-4 flex flex-col justify-between shadow-sm">
           <div>
-            <div className="flex items-center justify-between text-fg-3 text-[11px] font-semibold uppercase">
-              <span>Model Prediction (Day 0)</span>
+            <div className="flex items-center justify-between text-fg-3 text-[11px] font-semibold uppercase tracking-wider">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-flex size-4 items-center justify-center rounded-full bg-cyan-500/20 text-[10px] font-bold text-cyan-400">1</span>
+                <span>Model Prediction (Day 0)</span>
+              </span>
               <Target className="size-4 text-cyan-400" />
             </div>
-            <div className="mt-2 text-2xl font-bold tracking-tight text-cyan-400">
-              {pct(report.predictedReturnPct)}
+            <div className="mt-2 text-2xl font-bold tracking-tight text-cyan-400 font-mono">
+              {pct(report.predictedReturnRate)}
             </div>
             <div className="mt-0.5 text-[12px] font-medium text-fg-2">
-              Expected Return: {inrSigned(report.predictedPnl)}
+              Expected Return: <span className="text-cyan-400 font-bold">{inrSigned(report.predictedPnl)}</span>
             </div>
           </div>
           <div className="mt-3 pt-2.5 border-t border-line/60 flex items-center justify-between text-[11px] text-fg-3">
             <span>Forecast Window</span>
-            <span className="font-semibold text-fg-2">{report.totalDays} Trading Days</span>
+            <span className="font-semibold text-fg-2">{report.totalDays} Trading Days Target</span>
           </div>
         </div>
 
         {/* KPI 2: Realized Market Outcome */}
-        <div className="rounded-xl border border-line bg-surface p-4 flex flex-col justify-between">
+        <div className="rounded-xl border border-line bg-surface p-4 flex flex-col justify-between shadow-sm">
           <div>
-            <div className="flex items-center justify-between text-fg-3 text-[11px] font-semibold uppercase">
-              <span>Actual Market Outcome</span>
-              {report.realizedReturnPct >= 0 ? (
+            <div className="flex items-center justify-between text-fg-3 text-[11px] font-semibold uppercase tracking-wider">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-flex size-4 items-center justify-center rounded-full bg-surface-2 text-[10px] font-bold text-fg-2">2</span>
+                <span>Actual Market Outcome</span>
+              </span>
+              {report.realizedReturnRate >= 0 ? (
                 <TrendingUp className="size-4 text-emerald-400" />
               ) : (
                 <TrendingDown className="size-4 text-rose-400" />
@@ -312,50 +318,56 @@ export function VerificationScreen({
             </div>
             <div
               className={cx(
-                'mt-2 text-2xl font-bold tracking-tight',
-                report.realizedReturnPct >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                'mt-2 text-2xl font-bold tracking-tight font-mono',
+                report.realizedReturnRate >= 0 ? 'text-emerald-400' : 'text-rose-400'
               )}
             >
-              {pct(report.realizedReturnPct)}
+              {pct(report.realizedReturnRate)}
             </div>
             <div className="mt-0.5 text-[12px] font-medium text-fg-2">
-              Realized P&amp;L: {inrSigned(report.realizedPnl)}
+              Realized P&amp;L:{' '}
+              <span className={cx('font-bold', report.realizedPnl >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
+                {inrSigned(report.realizedPnl)}
+              </span>
             </div>
           </div>
           <div className="mt-3 pt-2.5 border-t border-line/60 flex items-center justify-between text-[11px] text-fg-3">
-            <span>Status</span>
+            <span>Market Settlement</span>
             <span
               className={cx(
                 'font-semibold',
                 report.isFullySettled ? 'text-emerald-400' : 'text-cyan-400'
               )}
             >
-              {report.settledDays}/{report.totalDays} Days Settled
+              {report.settledDays}/{report.totalDays} Days Settled (NSE Closes)
             </span>
           </div>
         </div>
 
         {/* KPI 3: Alpha / Tracking Error */}
-        <div className="rounded-xl border border-line bg-surface p-4 flex flex-col justify-between">
+        <div className="rounded-xl border border-line bg-surface p-4 flex flex-col justify-between shadow-sm">
           <div>
-            <div className="flex items-center justify-between text-fg-3 text-[11px] font-semibold uppercase">
-              <span>Alpha / Tracking Deviation</span>
+            <div className="flex items-center justify-between text-fg-3 text-[11px] font-semibold uppercase tracking-wider">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-flex size-4 items-center justify-center rounded-full bg-indigo-500/20 text-[10px] font-bold text-indigo-400">3</span>
+                <span>Alpha / Tracking Deviation</span>
+              </span>
               <BarChart3 className="size-4 text-indigo-400" />
             </div>
             <div
               className={cx(
-                'mt-2 text-2xl font-bold tracking-tight',
-                report.alphaDeviationPct >= 0 ? 'text-emerald-400' : 'text-amber-400'
+                'mt-2 text-2xl font-bold tracking-tight font-mono',
+                report.alphaDeviationRate >= 0 ? 'text-emerald-400' : 'text-amber-400'
               )}
             >
-              {pct(report.alphaDeviationPct)}
+              {pct(report.alphaDeviationRate)}
             </div>
             <div className="mt-0.5 text-[12px] font-medium text-fg-2">
-              Directional Hit:{' '}
-              {report.directionalHit ? (
-                <span className="text-emerald-400 font-bold">100% Direction Matched</span>
+              Reality vs. Model:{' '}
+              {report.alphaDeviationRate >= 0 ? (
+                <span className="text-emerald-400 font-bold">Beat Forecast (+Alpha)</span>
               ) : (
-                <span className="text-amber-400 font-bold">Divergence</span>
+                <span className="text-amber-400 font-bold">Lagged Forecast</span>
               )}
             </div>
           </div>
@@ -366,16 +378,16 @@ export function VerificationScreen({
         </div>
 
         {/* KPI 4: GTT Risk Controls */}
-        <div className="rounded-xl border border-line bg-surface p-4 flex flex-col justify-between">
+        <div className="rounded-xl border border-line bg-surface p-4 flex flex-col justify-between shadow-sm">
           <div>
-            <div className="flex items-center justify-between text-fg-3 text-[11px] font-semibold uppercase">
+            <div className="flex items-center justify-between text-fg-3 text-[11px] font-semibold uppercase tracking-wider">
               <span>GTT Target &amp; Stop Hits</span>
               <ShieldCheck className="size-4 text-emerald-400" />
             </div>
-            <div className="mt-2 text-2xl font-bold tracking-tight text-fg">
-              <span className="text-emerald-400">{report.targetHitCount}</span>
+            <div className="mt-2 text-2xl font-bold tracking-tight text-fg font-mono">
+              <span className="text-emerald-400">{report.targetHitCount} Target</span>
               <span className="text-fg-4 text-lg font-normal"> / </span>
-              <span className="text-rose-400">{report.stopHitCount}</span>
+              <span className="text-rose-400">{report.stopHitCount} Stop</span>
             </div>
             <div className="mt-0.5 text-[12px] font-medium text-fg-3">
               {report.targetHitCount} Target(s) reached · {report.stopHitCount} Stop(s) triggered
@@ -383,7 +395,31 @@ export function VerificationScreen({
           </div>
           <div className="mt-3 pt-2.5 border-t border-line/60 flex items-center justify-between text-[11px] text-fg-3">
             <span>Max Drawdown</span>
-            <span className="font-semibold text-rose-400">-{report.maxDrawdownPct.toFixed(2)}%</span>
+            <span className="font-semibold text-rose-400">-{pct(report.maxDrawdownRate, 2, false)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── EXPLAINER BANNER: UNDERSTANDING THE 3 CARDS ────────── */}
+      <div className="rounded-xl border border-line bg-surface/90 p-3.5 text-[12px] shadow-sm">
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+          <div className="flex items-center gap-2 font-bold text-fg shrink-0 pr-3 md:border-r md:border-line">
+            <Sparkles className="size-4 text-cyan-400" />
+            <span>How to Read These 3 Cards:</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1 text-[11.5px] text-fg-3">
+            <div className="flex items-start gap-1.5">
+              <span className="font-bold text-cyan-400 shrink-0">[1] Model Prediction:</span>
+              <span>Target return &amp; profit projected on entry (Day 0) by the quantitative forecast model.</span>
+            </div>
+            <div className="flex items-start gap-1.5">
+              <span className="font-bold text-emerald-400 shrink-0">[2] Actual Outcome:</span>
+              <span>Realized profit &amp; return calculated from authentic NSE settled closing auction prices.</span>
+            </div>
+            <div className="flex items-start gap-1.5">
+              <span className="font-bold text-indigo-400 shrink-0">[3] Alpha / Tracking:</span>
+              <span>Reality [2] minus Forecast [1]. Shows if the real market beat (+) or trailed (-) the forecast.</span>
+            </div>
           </div>
         </div>
       </div>
@@ -503,7 +539,7 @@ export function VerificationScreen({
             {settledPoints && (
               <polyline
                 fill="none"
-                stroke={report.realizedReturnPct >= 0 ? '#10B981' : '#F43F5E'}
+                stroke={report.realizedReturnRate >= 0 ? '#10B981' : '#F43F5E'}
                 strokeWidth="3"
                 points={settledPoints}
               />
@@ -544,7 +580,7 @@ export function VerificationScreen({
                       cx={x}
                       cy={yActual}
                       r={isHovered ? 6 : 4.5}
-                      fill={t.returnPct >= 0 ? '#10B981' : '#F43F5E'}
+                      fill={t.returnRate >= 0 ? '#10B981' : '#F43F5E'}
                       stroke="#080B10"
                       strokeWidth="2"
                     />
@@ -587,12 +623,12 @@ export function VerificationScreen({
                         x={Math.min(chartW - 90, Math.max(90, x))}
                         y={Math.max(10, Math.min(yActual, yPred) - 65) + 32}
                         textAnchor="middle"
-                        fill={t.isSettled ? (t.returnPct >= 0 ? '#10B981' : '#F43F5E') : '#F59E0B'}
+                        fill={t.isSettled ? (t.returnRate >= 0 ? '#10B981' : '#F43F5E') : '#F59E0B'}
                         fontSize="10"
                         fontFamily="monospace"
                       >
                         {t.isSettled
-                          ? `Realized: ${inr(t.portfolioValue)} (${t.returnPct >= 0 ? '+' : ''}${t.returnPct.toFixed(2)}%)`
+                          ? `Realized: ${inr(t.portfolioValue)} (${pct(t.returnRate)})`
                           : 'Pending Market Close'}
                       </text>
                       <text
@@ -603,7 +639,7 @@ export function VerificationScreen({
                         fontSize="10"
                         fontFamily="monospace"
                       >
-                        Predicted: {inr(t.predictedValue)} (+{t.predictedReturnPct.toFixed(2)}%)
+                        Predicted: {inr(t.predictedValue)} ({pct(t.predictedReturnRate)})
                       </text>
                     </g>
                   )}
@@ -642,10 +678,10 @@ export function VerificationScreen({
               <div
                 className={cx(
                   'text-[10.5px] font-bold num',
-                  step.returnPct >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                  step.returnRate >= 0 ? 'text-emerald-400' : 'text-rose-400'
                 )}
               >
-                {step.day === 0 ? '₹0 (0.00%)' : inrSigned(step.pnl) + ` (${pct(step.returnPct)})`}
+                {step.day === 0 ? '₹0 (0.00%)' : `${inrSigned(step.pnl)} (${pct(step.returnRate)})`}
               </div>
             </div>
           ))}
@@ -705,7 +741,7 @@ export function VerificationScreen({
                   <th className="py-3 px-3 text-right">Weight</th>
                   <th className="py-3 px-3 text-right">Shares</th>
                   <th className="py-3 px-3 text-right">Entry Close (₹)</th>
-                  <th className="py-3 px-3 text-right">Target GTT (₹)</th>
+                  <th className="py-3 px-3 text-right">Model Target (₹)</th>
                   <th className="py-3 px-3 text-right">Stop GTT (₹)</th>
                   <th className="py-3 px-3 text-right">Latest Close (₹)</th>
                   <th className="py-3 px-3 text-right">Realized Return</th>
@@ -740,10 +776,10 @@ export function VerificationScreen({
                     </td>
 
                     {/* Target GTT */}
-                    <td className="py-3 px-3 text-right text-emerald-400 font-mono">
+                    <td className="py-3 px-3 text-right text-cyan-400 font-mono">
                       ₹{row.targetPrice.toFixed(2)}
-                      <span className="text-[10px] text-emerald-500/80 block">
-                        (+{row.targetPct.toFixed(1)}%)
+                      <span className="text-[10px] text-cyan-500/80 block">
+                        ({pct(row.predictedReturnRate)})
                       </span>
                     </td>
 
@@ -751,7 +787,7 @@ export function VerificationScreen({
                     <td className="py-3 px-3 text-right text-rose-400 font-mono">
                       ₹{row.stopPrice.toFixed(2)}
                       <span className="text-[10px] text-rose-500/80 block">
-                        (-{row.stopPct.toFixed(1)}%)
+                        (-{pct(row.stopPct, 2, false)})
                       </span>
                     </td>
 
@@ -764,11 +800,10 @@ export function VerificationScreen({
                     <td
                       className={cx(
                         'py-3 px-3 text-right font-bold font-mono',
-                        row.realizedReturnPct >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                        row.realizedReturnRate >= 0 ? 'text-emerald-400' : 'text-rose-400'
                       )}
                     >
-                      {row.realizedReturnPct >= 0 ? '+' : ''}
-                      {row.realizedReturnPct.toFixed(2)}%
+                      {pct(row.realizedReturnRate)}
                     </td>
 
                     {/* Realized PnL */}
@@ -796,28 +831,30 @@ export function VerificationScreen({
                         </span>
                       )}
                       {row.status !== 'TARGET_HIT' && row.status !== 'STOP_BREACHED' && report.isFullySettled && (
-                        row.realizedReturnPct >= 0 ? (
-                          <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-2 py-0.5 text-[10.5px] font-bold text-emerald-400">
-                            <TrendingUp className="size-3" />
-                            <span>COMPLETED (+{row.realizedReturnPct.toFixed(2)}%)</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 rounded bg-rose-500/10 px-2 py-0.5 text-[10.5px] font-bold text-rose-400">
-                            <TrendingDown className="size-3" />
-                            <span>COMPLETED ({row.realizedReturnPct.toFixed(2)}%)</span>
-                          </span>
-                        )
+                        <span
+                          className={cx(
+                            'inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10.5px] font-bold',
+                            row.realizedReturnRate >= 0
+                              ? 'bg-emerald-500/10 text-emerald-400'
+                              : 'bg-rose-500/10 text-rose-400'
+                          )}
+                        >
+                          {row.realizedReturnRate >= 0 ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
+                          <span>COMPLETED ({pct(row.realizedReturnRate)})</span>
+                        </span>
                       )}
                       {row.status !== 'TARGET_HIT' && row.status !== 'STOP_BREACHED' && !report.isFullySettled && (
                         report.settledDays > 0 ? (
-                          <span className={cx(
-                            'inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10.5px] font-bold border',
-                            row.realizedReturnPct >= 0
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                              : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                          )}>
+                          <span
+                            className={cx(
+                              'inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10.5px] font-bold border',
+                              row.realizedReturnRate >= 0
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                            )}
+                          >
                             <Clock className="size-3" />
-                            <span>ACTIVE ({row.realizedReturnPct >= 0 ? '+' : ''}{row.realizedReturnPct.toFixed(2)}%)</span>
+                            <span>ACTIVE ({pct(row.realizedReturnRate)})</span>
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 rounded bg-amber-500/15 px-2 py-0.5 text-[10.5px] font-bold text-amber-400">
@@ -845,10 +882,10 @@ export function VerificationScreen({
                   <td
                     className={cx(
                       'py-3 px-3 text-right num text-[13px] font-bold',
-                      report.realizedReturnPct >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                      report.realizedReturnRate >= 0 ? 'text-emerald-400' : 'text-rose-400'
                     )}
                   >
-                    {pct(report.realizedReturnPct)}
+                    {pct(report.realizedReturnRate)}
                   </td>
                   <td
                     className={cx(
@@ -909,11 +946,10 @@ export function VerificationScreen({
                             <span
                               className={cx(
                                 'block text-[10px] font-bold',
-                                step.returnFromEntryPct >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                                step.returnFromEntryRate >= 0 ? 'text-emerald-400' : 'text-rose-400'
                               )}
                             >
-                              {step.returnFromEntryPct >= 0 ? '+' : ''}
-                              {step.returnFromEntryPct.toFixed(2)}%
+                              {pct(step.returnFromEntryRate)}
                             </span>
                           </div>
                         ) : (
@@ -926,11 +962,10 @@ export function VerificationScreen({
                     <td
                       className={cx(
                         'py-3 px-4 text-right font-mono font-bold text-[13px]',
-                        row.realizedReturnPct >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                        row.realizedReturnRate >= 0 ? 'text-emerald-400' : 'text-rose-400'
                       )}
                     >
-                      {row.realizedReturnPct >= 0 ? '+' : ''}
-                      {row.realizedReturnPct.toFixed(2)}%
+                      {pct(row.realizedReturnRate)}
                     </td>
                   </tr>
                 ))}
