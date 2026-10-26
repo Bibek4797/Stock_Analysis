@@ -1,6 +1,6 @@
 import REAL_HISTORY_DATA from './real_history.json'
 import { STOCKS, STOCK_MAP, forecast, type Stock, type Bar } from './market'
-import { resolveAutoStrategy, type Strategy } from './portfolio'
+import { resolveAutoStrategy, buildPortfolio, type Strategy } from './portfolio'
 import type { FeatureSet, ReturnModelSel, RiskModelSel } from './validation'
 
 export interface HistoricalSession {
@@ -176,151 +176,48 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
       ? resolveAutoStrategy(entryIdx)
       : stratMode
 
-  // Candidate symbols: custom selection or top quality universe
-  const pool =
-    opts.selectedSymbols && opts.selectedSymbols.length > 0
-      ? opts.selectedSymbols
-          .map((sym) => {
-            const clean = sym.replace('.NS', '')
-            return STOCK_MAP[clean] || STOCKS.find((s) => s.symbol === clean)
-          })
-          .filter(Boolean) as Stock[]
-      : STOCKS.filter((s) => s.sector !== 'ETF')
-
-  // Generate authentic quant predictions at entry date (NO LOOKAHEAD BIAS)
-  // Calls the exact quantitative econometric forecast engine (MLP / SARIMAX / GJR-GARCH)
-  const scored = pool.map((s) => {
+  // Build authentic historical price lookup at entry date
+  const pricesAtEntry: Record<string, number> = {}
+  for (const s of STOCKS) {
     const bars = realHistoryMap[s.symbol] || []
-    const entryBar = bars[entryIdx]
-    const p0 = entryBar ? entryBar.c : s.price
+    const bar = bars[entryIdx]
+    pricesAtEntry[s.symbol] = bar ? bar.c : (opts.livePrices?.[s.symbol] ?? s.price)
+  }
 
-    // Unified model forecast on the selected entry date (calibrated to historical bars up to entryIdx)
-    const fc = forecast(s, p0, horizon, {
+  // Call the single source of truth portfolio builder (exact same engine as Portfolio & Terminal)
+  const port = buildPortfolio(
+    capital,
+    horizon,
+    pricesAtEntry,
+    resolvedStrategy,
+    opts.selectedSymbols,
+    {
       feature,
       returnModel,
       riskModel,
       entryIdx,
-    })
-
-    const targetPct = (fc.target - p0) / p0
-    const stopPct = (p0 - fc.stop) / p0
-
-    return {
-      stock: s,
-      p0,
-      effVol: fc.annVol,
-      sigmaH: fc.sigmaH,
-      expRet: fc.expRet, // e.g. 0.0185 (+1.85%)
-      targetPct, // fraction
-      stopPct, // fraction
-      targetPrice: fc.target,
-      stopPrice: fc.stop,
-      score: fc.score,
-      tail: fc.tail,
     }
-  })
+  )
 
-  // Pick candidate stocks according to the strategy's core selection philosophy
-  let selected = scored
-  if (!opts.selectedSymbols || opts.selectedSymbols.length === 0) {
-    if (resolvedStrategy === 'trc') {
-      // Ray Dalio All-Weather Risk Parity: 1 top quality stock per sector, sorted by lowest vol
-      const bySector = new Map<string, (typeof scored)[0]>()
-      const sortedByLowVol = [...scored].sort((a, b) => a.effVol - b.effVol)
-      for (const item of sortedByLowVol) {
-        if (!bySector.has(item.stock.sector)) {
-          bySector.set(item.stock.sector, item)
-        }
-      }
-      selected = Array.from(bySector.values()).slice(0, 8)
-    } else if (resolvedStrategy === 'mpt') {
-      // Markowitz MPT: Maximize Sharpe Ratio (score / effVol)
-      selected = [...scored]
-        .sort((a, b) => (b.score / Math.max(0.01, b.effVol)) - (a.score / Math.max(0.01, a.effVol)))
-        .slice(0, 8)
-    } else if (resolvedStrategy === 'equal') {
-      // Equal Weight: Top largecap core names
-      selected = [...scored]
-        .filter((x) => ['Bank', 'IT', 'Energy', 'Auto', 'FMCG'].includes(x.stock.sector))
-        .sort((a, b) => b.p0 - a.p0)
-        .slice(0, 8)
-    } else {
-      // Rockafellar CVaR: Maximize tail return over downside expected shortfall
-      selected = [...scored]
-        .filter((x) => x.score > 0.1 || ['Bank', 'IT', 'Energy'].includes(x.stock.sector))
-        .sort((a, b) => (b.score / Math.max(0.005, Math.abs(b.tail))) - (a.score / Math.max(0.005, Math.abs(a.tail))))
-        .slice(0, 8)
-    }
-  }
+  const cashReserve = port.capital - port.stockInvested
+  const totalInvestedStock = port.stockInvested
+  const predictedReturnRate = port.expRet
+  const predictedPnl = capital * predictedReturnRate
 
-  if (selected.length === 0) {
-    selected = scored.slice(0, 5)
-  }
-
-  // Calculate Strategy Weights
-  const deploy = 0.85
-  let maxWeightCap = 0.20
-  let rawWeights: number[] = []
-
-  switch (resolvedStrategy) {
-    case 'cvar': {
-      maxWeightCap = 0.22
-      rawWeights = selected.map((item) =>
-        Math.pow(Math.max(0.01, item.score) / Math.max(0.005, Math.abs(item.tail)), 1.5)
-      )
-      break
+  // Map each portfolio position to verification row with forward tracking
+  const rows: AssetVerificationRow[] = port.positions.map((p) => {
+    const item = {
+      stock: p.stock,
+      p0: p.fc.price,
+      targetPrice: p.fc.target,
+      stopPrice: p.fc.stop,
+      targetPct: (p.fc.target - p.fc.price) / p.fc.price,
+      stopPct: (p.fc.price - p.fc.stop) / p.fc.price,
+      expRet: p.fc.expRet,
     }
-    case 'trc': {
-      maxWeightCap = 0.18
-      rawWeights = selected.map((item) => 1 / Math.max(0.02, item.effVol))
-      break
-    }
-    case 'mpt': {
-      maxWeightCap = 0.28
-      rawWeights = selected.map((item) => {
-        const sharpe = Math.max(0.05, item.expRet) / Math.max(0.02, item.effVol)
-        return Math.pow(sharpe, 2.2)
-      })
-      break
-    }
-    case 'equal':
-    default: {
-      maxWeightCap = 1.0
-      rawWeights = selected.map(() => 1)
-      break
-    }
-  }
-
-  const sumRaw = rawWeights.reduce((a, b) => a + b, 0) || 1
-  let weights = rawWeights.map((w) => (w / sumRaw) * deploy)
-  for (let iter = 0; iter < 5; iter++) {
-    let excess = 0
-    let uncappedSum = 0
-    for (let i = 0; i < weights.length; i++) {
-      if (weights[i] > maxWeightCap) {
-        excess += weights[i] - maxWeightCap
-        weights[i] = maxWeightCap
-      } else {
-        uncappedSum += weights[i]
-      }
-    }
-    if (excess > 0 && uncappedSum > 0) {
-      for (let i = 0; i < weights.length; i++) {
-        if (weights[i] < maxWeightCap) {
-          weights[i] += (weights[i] / uncappedSum) * excess
-        }
-      }
-    }
-  }
-
-  // Whole Share Allocation
-  let totalInvestedStock = 0
-  const rows: AssetVerificationRow[] = selected.map((item, idx) => {
-    const w = weights[idx]
-    const alloc = w * capital
-    const shares = Math.floor(alloc / item.p0)
-    const invested = shares * item.p0
-    totalInvestedStock += invested
+    const w = p.weight
+    const shares = p.shares
+    const invested = p.invested
 
     const bars = realHistoryMap[item.stock.symbol] || []
 
@@ -415,13 +312,7 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
     }
   })
 
-  const cashReserve = capital - totalInvestedStock
 
-  // Total Portfolio Expected Return (weighted sum fraction)
-  const predictedReturnRate =
-    rows.reduce((sum, r) => sum + (r.invested / capital) * r.predictedReturnRate, 0) +
-    (cashReserve / capital) * (0.065 * (horizon / 252)) // cash yield ~6.5% p.a.
-  const predictedPnl = capital * predictedReturnRate
 
   // Construct Day-by-Day Portfolio Timeline (Day 0 to Day H)
   const timeline: DayStep[] = []

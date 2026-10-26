@@ -2,7 +2,17 @@ import { erfc } from './portfolio'
 import { getHistory, hashStr, rng, type Stock } from './market'
 import type { QuantForecastResponse } from '@/types'
 
-export type FeatureSet = 'mlp' | 'logret'
+export type FeatureSet = 'auto' | 'mlp' | 'logret'
+
+export function resolveFeatureSet(feature: FeatureSet, isCrash?: boolean): 'mlp' | 'logret' {
+  if (feature === 'auto') {
+    // Quantitative Rule of Thumb:
+    // If market is in Crash / Tail-Stress regime -> Log Returns (robust, minimum estimation variance, direct price momentum)
+    // If market is in Balanced / Bullish regime -> MLP Latent Bottleneck (uncovers multi-factor volume & RSI accumulation)
+    return isCrash ? 'logret' : 'mlp'
+  }
+  return feature
+}
 export type ReturnModelSel = 'auto' | 'sarimax' | 'lstm'
 export type RiskModelSel = 'auto' | 'gjr' | 'hybrid'
 

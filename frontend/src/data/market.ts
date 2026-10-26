@@ -361,7 +361,7 @@ export function forecast(
   price: number,
   horizon: number,
   opts?: {
-    feature?: 'mlp' | 'logret'
+    feature?: 'mlp' | 'logret' | 'auto'
     returnModel?: 'auto' | 'sarimax' | 'lstm'
     riskModel?: 'auto' | 'gjr' | 'hybrid'
     refit?: number
@@ -369,7 +369,19 @@ export function forecast(
   }
 ): Forecast {
   const refit = opts?.refit ?? 0
-  const feature = opts?.feature ?? 'mlp'
+  let feature = opts?.feature ?? 'auto'
+  if (feature === 'auto') {
+    const bars = (REAL_HISTORY_DATA as Record<string, { c: number }[]>)['NIFTYBEES'] || []
+    const idx = opts?.entryIdx !== undefined ? opts.entryIdx : bars.length - 1
+    if (idx >= 0 && idx < bars.length) {
+      const p = bars[idx]?.c ?? 0
+      const p20 = bars[Math.max(0, idx - 20)]?.c ?? p
+      const ret20d = p20 > 0 ? (p - p20) / p20 : 0
+      feature = ret20d < -0.04 ? 'logret' : 'mlp'
+    } else {
+      feature = 'mlp'
+    }
+  }
   const retSel = opts?.returnModel ?? 'auto'
   const riskSel = opts?.riskModel ?? 'auto'
 

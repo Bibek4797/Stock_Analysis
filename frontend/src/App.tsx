@@ -126,7 +126,7 @@ export default function App() {
 
   // Risk & Econometric Model State
 
-  const [feature, setFeature] = useState<FeatureSet>('mlp')
+  const [feature, setFeature] = useState<FeatureSet>('auto')
 
   const [retSel, setRetSel] = useState<ReturnModelSel>('auto')
 
@@ -519,9 +519,9 @@ export default function App() {
 
     }
 
-    return buildPortfolio(capital, horizon, effectivePrices, resolvedStrategy, selectedSymbols, { feature, refit })
+    return buildPortfolio(capital, horizon, effectivePrices, resolvedStrategy, selectedSymbols, { feature, returnModel: retSel, riskModel: riskSel, refit })
 
-  }, [rawPortfolioData, capital, horizon, simulatedTickPrices, livePriceMap, resolvedStrategy, selectedSymbols, activeStockMap, feature, refit])
+  }, [rawPortfolioData, capital, horizon, simulatedTickPrices, livePriceMap, resolvedStrategy, selectedSymbols, activeStockMap, feature, retSel, riskSel, refit])
 
 
 
@@ -650,6 +650,18 @@ export default function App() {
             bars={chartBars}
 
             stocks={stocksList}
+
+            strategyMode={strategyMode}
+
+            onStrategyMode={setStrategyMode}
+
+            selectedSymbols={selectedSymbols}
+
+            onSelectSymbols={setSelectedSymbols}
+
+            feature={feature}
+
+            onFeatureChange={setFeature}
 
           />
 

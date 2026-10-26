@@ -12,7 +12,8 @@ const CAPITAL_PRESETS = [
 ]
 const HORIZONS = [3, 5, 7, 10]
 
-import { resolveAutoStrategy, type Strategy } from '@/data/portfolio'
+import { resolveAutoStrategy, isMarketInCrash, type Strategy } from '@/data/portfolio'
+import { resolveFeatureSet, type FeatureSet } from '@/data/validation'
 
 export function Sidebar({
   capital,
@@ -27,7 +28,11 @@ export function Sidebar({
   onStrategyMode,
   selectedSymbols,
   onSelectSymbols,
+  feature = 'auto',
+  onFeatureChange,
 }: {
+  feature?: FeatureSet
+  onFeatureChange?: (f: FeatureSet) => void
   capital: number
   onCapital: (v: number) => void
   horizon: number
@@ -166,6 +171,32 @@ export function Sidebar({
             value={strategyMode}
             onChange={(s) => onStrategyMode?.(s as Strategy | 'auto')}
           />
+        </div>
+
+        {/* Input Feature Representation Selector with Rule of Thumb */}
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <Label>Input Features</Label>
+            <span className="text-[10px] text-accent font-semibold uppercase">
+              {feature === 'auto' ? `Auto (${resolveFeatureSet('auto', isMarketInCrash().isCrash).toUpperCase()})` : feature.toUpperCase()}
+            </span>
+          </div>
+          <Seg
+            label="Input features"
+            className="w-full text-[10px]"
+            options={[
+              { value: 'auto', label: 'Auto' },
+              { value: 'logret', label: 'LogRet' },
+              { value: 'mlp', label: 'MLP' },
+            ]}
+            value={feature}
+            onChange={(f) => onFeatureChange?.(f as FeatureSet)}
+          />
+          <div className="mt-1 text-[9.5px] text-fg-4 leading-tight">
+            {isMarketInCrash().isCrash
+              ? 'Crash regime active -> Log Returns (direct robust price momentum)'
+              : 'Steady regime active -> MLP Bottleneck (multi-factor alpha & RSI)'}
+          </div>
         </div>
 
         {selectedSymbols && selectedSymbols.length > 0 && (

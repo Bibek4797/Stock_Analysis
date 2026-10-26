@@ -1,3 +1,4 @@
+import type { FeatureSet } from '@/data/validation'
 import type { Bar, Forecast, Stock } from '@/data/market'
 import type { Portfolio, Strategy } from '@/data/portfolio'
 import { Sidebar } from './Sidebar'
@@ -24,6 +25,8 @@ export function TerminalScreen(props: {
   onStrategyMode?: (s: Strategy | 'auto') => void
   selectedSymbols?: string[] | null
   onSelectSymbols?: (symbols: string[] | null) => void
+  feature?: FeatureSet
+  onFeatureChange?: (f: FeatureSet) => void
 }) {
   const { stock, prices, fc, portfolio, bars, stocks, strategyMode, onStrategyMode, selectedSymbols, onSelectSymbols } = props
   const price = prices[stock.symbol] ?? stock.price
@@ -42,6 +45,8 @@ export function TerminalScreen(props: {
         onStrategyMode={onStrategyMode}
         selectedSymbols={selectedSymbols}
         onSelectSymbols={onSelectSymbols}
+        feature={props.feature}
+        onFeatureChange={props.onFeatureChange}
       />
       <div className="scroll-thin flex min-w-0 flex-col gap-3 lg:h-[calc(100dvh-49px)] lg:overflow-y-auto lg:p-3">
         <InstrumentHeader stock={stock} price={price} bars={bars} />

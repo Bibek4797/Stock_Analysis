@@ -6,8 +6,8 @@ import {
   type VerificationReport,
   type DayStep,
 } from '@/data/verification'
-import type { Strategy } from '@/data/portfolio'
-import type { FeatureSet, ReturnModelSel, RiskModelSel } from '@/data/validation'
+import { isMarketInCrash, type Strategy } from '@/data/portfolio'
+import { resolveFeatureSet, type FeatureSet, type ReturnModelSel, type RiskModelSel } from '@/data/validation'
 import { STRATEGY_META } from '@/data/portfolio'
 import { Panel, Chip, Seg, Stat } from '@/components/ui'
 import { inr, inrSigned, num, pct, cx } from '@/lib/format'
@@ -238,10 +238,9 @@ export function VerificationScreen({
     return allSessions.slice(Math.max(0, allSessions.length - 45)).reverse()
   }, [allSessions])
 
-  // Default to 23 Oct 2026 (index 245) or recent session
+  // Default to latest market session (index 246) so it matches Terminal & Portfolio screens out of the box
   const defaultIndex = useMemo(() => {
-    const oct23 = allSessions.find((s) => s.dateStr === '2026-10-23')
-    return oct23 ? oct23.index : allSessions[allSessions.length - 1].index
+    return allSessions[allSessions.length - 1].index
   }, [allSessions])
 
   const [selectedEntryIdx, setSelectedEntryIdx] = useState<number>(defaultIndex)
@@ -322,12 +321,18 @@ export function VerificationScreen({
         </div>
 
         <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-[11px] font-mono font-medium text-fg-3">
+            <span className="text-fg-4">Rule of Thumb:</span>
+            <span className="text-accent font-semibold uppercase">
+              {feature === 'auto' ? `Auto (${resolveFeatureSet('auto', isMarketInCrash(selectedEntryIdx).isCrash).toUpperCase()})` : feature.toUpperCase()}
+            </span>
+          </div>
           <button
             onClick={() => setSelectedEntryIdx(defaultIndex)}
             className="flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-[12px] font-medium text-fg-2 hover:bg-surface-2 transition-colors"
           >
             <RefreshCw className="size-3.5 text-accent" />
-            <span>Reset to 23 Oct 2026</span>
+            <span>Reset to Latest Session</span>
           </button>
         </div>
       </div>

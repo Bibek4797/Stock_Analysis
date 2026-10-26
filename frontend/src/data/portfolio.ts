@@ -1,5 +1,6 @@
 import { CASH_ETF, STOCKS, STOCK_MAP, forecast, gauss, hashStr, rng, type Forecast, type Stock } from './market'
 import type { PortfolioResponse } from '@/types'
+import { resolveFeatureSet, type FeatureSet } from './validation'
 import REAL_HISTORY_DATA from './real_history.json'
 export type Strategy = 'cvar' | 'trc' | 'mpt' | 'equal'
 export const STRATEGIES: Strategy[] = ['cvar', 'trc', 'mpt', 'equal']
@@ -157,14 +158,18 @@ export function buildPortfolio(
   strategy: Strategy = 'cvar',
   selectedSymbols?: string[] | null,
   fcOpts?: {
-    feature?: 'mlp' | 'logret'
+    feature?: FeatureSet
     returnModel?: 'auto' | 'sarimax' | 'lstm'
     riskModel?: 'auto' | 'gjr' | 'hybrid'
     refit?: number
+    entryIdx?: number
   }
 
 ): Portfolio {
-  const regime = marketRegime()
+  const { isCrash } = isMarketInCrash(fcOpts?.entryIdx)
+  const resolvedFeature = resolveFeatureSet(fcOpts?.feature ?? 'auto', isCrash)
+  const effectiveFcOpts = { ...fcOpts, feature: resolvedFeature, entryIdx: fcOpts?.entryIdx }
+  const regime = marketRegime(fcOpts?.entryIdx)
   const deploy = REGIME_META[regime].deploy
   const hasCustom = Boolean(selectedSymbols && selectedSymbols.length > 0)
   const pool = hasCustom
@@ -177,7 +182,7 @@ export function buildPortfolio(
     : STOCKS.filter((s) => s.sector !== 'ETF')
 
   let ranked = pool
-    .map((s) => ({ s, fc: forecast(s, prices[s.symbol] ?? s.price, horizon, fcOpts) }))
+    .map((s) => ({ s, fc: forecast(s, prices[s.symbol] ?? s.price, horizon, effectiveFcOpts) }))
 
   if (!hasCustom) {
     if (strategy === 'trc') {
@@ -202,9 +207,9 @@ export function buildPortfolio(
         .sort((a, b) => b.s.price - a.s.price)
         .slice(0, 8)
     } else {
-      // Rockafellar CVaR: Maximize return over downside expected shortfall
+      // Rockafellar CVaR: Maximize return over downside expected shortfall across quality sectors
       ranked = [...ranked]
-        .filter((x) => x.fc.score > 0.1)
+        .filter((x) => x.fc.score > 0.1 || ['Bank', 'IT', 'Energy', 'Auto', 'FMCG'].includes(x.s.sector))
         .sort((a, b) => (b.fc.score / Math.max(0.005, Math.abs(b.fc.tail))) - (a.fc.score / Math.max(0.005, Math.abs(a.fc.tail))))
         .slice(0, 8)
     }
@@ -213,7 +218,7 @@ export function buildPortfolio(
   if (ranked.length === 0) {
     ranked = STOCKS.filter((s) => s.sector !== 'ETF')
       .slice(0, 4)
-      .map((s) => ({ s, fc: forecast(s, prices[s.symbol] ?? s.price, horizon, fcOpts) }))
+      .map((s) => ({ s, fc: forecast(s, prices[s.symbol] ?? s.price, horizon, effectiveFcOpts) }))
   }
 
   let maxWeightCap = 0.20
@@ -222,7 +227,7 @@ export function buildPortfolio(
   switch (strategy) {
     case 'cvar': {
       maxWeightCap = 0.22
-      raw = ranked.map(({ fc }) => Math.pow(Math.max(0.01, fc.score) / Math.max(0.005, Math.abs(fc.tail)), 1.5))
+      raw = ranked.map(({ fc }) => Math.pow(Math.max(0.01, fc.score + 1.0) / Math.max(0.005, Math.abs(fc.tail)), 1.2))
       break
     }
     case 'trc': {
@@ -279,7 +284,7 @@ export function buildPortfolio(
   const cashShares = Math.floor((capital - stockInvested) / cashPrice)
   const cashInvested = cashShares * cashPrice
   const totalInvested = stockInvested + cashInvested
-  const cashFc = forecast(STOCK_MAP[CASH_ETF], cashPrice, horizon, fcOpts)
+  const cashFc = forecast(STOCK_MAP[CASH_ETF], cashPrice, horizon, effectiveFcOpts)
   const expRet =
     positions.reduce((a, p) => a + p.actualWeight * p.fc.expRet, 0) + (cashInvested / capital) * cashFc.expRet
   const tail = Math.min(expRet - 1.85 * sigma, -0.0005)
