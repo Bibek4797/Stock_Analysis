@@ -235,7 +235,7 @@ export function VerificationScreen({
   // Available historical sessions (last 50 sessions for convenient selection)
   const allSessions = useMemo(() => getHistoricalSessions(), [])
   const recentSessions = useMemo(() => {
-    return allSessions.slice(Math.max(0, allSessions.length - 45)).reverse()
+    return allSessions.slice(Math.max(0, allSessions.length - 65)).reverse()
   }, [allSessions])
 
   // Default to latest market session (index 246) so it matches Terminal & Portfolio screens out of the box
