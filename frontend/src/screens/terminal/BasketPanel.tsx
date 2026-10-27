@@ -23,6 +23,10 @@ export function BasketPanel({
   )
   const deployedPct = portfolio.stockInvested / capital
 
+  const grossPnl = portfolio.expRet * capital
+  const charges = portfolio.fees
+  const netPnl = grossPnl - charges
+
   return (
     <Panel
       className="h-full"
@@ -42,14 +46,22 @@ export function BasketPanel({
           </div>
         </div>
         <div className="text-right">
-          <Label>Exp. P&amp;L</Label>
+          <Label>Exp. P&amp;L (Gross / Net)</Label>
           <div
             className={cx(
               'num mt-0.5 text-[14px] leading-8 font-semibold',
-              portfolio.expRet >= 0 ? 'text-up' : 'text-down',
+              grossPnl >= 0 ? 'text-up' : 'text-down',
             )}
           >
             {pct(portfolio.expRet)}
+            <span
+              className={cx(
+                'ml-1.5 text-[11px] font-mono font-medium',
+                netPnl >= 0 ? 'text-up' : 'text-down',
+              )}
+            >
+              (Net {pct(netPnl / capital)})
+            </span>
           </div>
         </div>
       </div>
@@ -153,23 +165,33 @@ export function BasketPanel({
 
       <footer className="mt-auto flex h-9 items-center justify-between gap-3 border-t border-line px-3 text-[11px]">
         <span className="text-fg-3">
-          Exp.{' '}
+          Gross{' '}
           <span
             className={cx(
               'num',
-              portfolio.expRet >= 0 ? 'text-up' : 'text-down',
+              grossPnl >= 0 ? 'text-up' : 'text-down',
             )}
           >
-            {inrSigned(portfolio.expRet * capital)}
+            {inrSigned(grossPnl)}
           </span>
-          <span className="mx-1.5 text-fg-4">·</span>
-          Tail{' '}
-          <span className="num text-down">
-            {inrSigned(portfolio.tail * capital)}
+          <span className="mx-1 text-fg-4">·</span>
+          Net{' '}
+          <span
+            className={cx(
+              'num font-medium',
+              netPnl >= 0 ? 'text-up' : 'text-down',
+            )}
+          >
+            {inrSigned(netPnl)}
+          </span>
+          <span className="mx-1 text-fg-4">·</span>
+          Charges{' '}
+          <span className="num text-amber-400">
+            {inr(charges, 0)}
           </span>
         </span>
         <span className="num text-fg-4">
-          {inr(portfolio.residual, 0)} residual
+          {inr(portfolio.residual, 0)} cash
         </span>
       </footer>
     </Panel>

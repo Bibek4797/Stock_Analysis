@@ -30,6 +30,8 @@ export function TerminalScreen(props: {
 }) {
   const { stock, prices, fc, portfolio, bars, stocks, strategyMode, onStrategyMode, selectedSymbols, onSelectSymbols } = props
   const price = prices[stock.symbol] ?? stock.price
+  const pos = portfolio.positions.find((p) => p.stock.symbol === stock.symbol)
+
   return (
     <div className="gap-3 max-lg:flex max-lg:flex-col max-lg:p-3 lg:grid lg:grid-cols-[264px_minmax(0,1fr)] lg:gap-0">
       <Sidebar
@@ -57,11 +59,14 @@ export function TerminalScreen(props: {
           <OutlookPanel
             stock={stock}
             fc={fc}
+            capital={props.capital}
+            pos={pos}
             onValidate={() => props.onTab('risk')}
           />
           <PositionPanel
             stock={stock}
             portfolio={portfolio}
+            fc={fc}
             onOpen={() => props.onTab('portfolio')}
           />
           <div className="md:col-span-2 xl:col-span-1">

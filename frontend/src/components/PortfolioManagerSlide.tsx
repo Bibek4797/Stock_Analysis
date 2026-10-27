@@ -818,6 +818,8 @@ export const PortfolioManagerSlide: React.FC<Props> = ({
 
   const activeMetric = tournament_metrics[portfolio.resolved_strategy] || tournament_metrics['rockafellar_cvar'] || Object.values(tournament_metrics)[0];
   const expReturnInr = (capital * (activeMetric?.annualized_return_pct || 0) * (horizon / 252)) / 100;
+  const totalChargesInr = blotter_summary?.total_est_zerodha_charges ?? 0;
+  const netExpReturnInr = expReturnInr - totalChargesInr;
   const cvarRiskInr = (capital * (activeMetric?.portfolio_cvar_pct || 0)) / 100;
   const activeEquityPct = portfolio.risk_scaling?.is_scaled
     ? (portfolio.risk_scaling.multiplier_kappa * 100)
@@ -1075,12 +1077,12 @@ export const PortfolioManagerSlide: React.FC<Props> = ({
               +{((activeMetric?.annualized_return_pct || 0) * (horizon / 252)).toFixed(2)}%
             </span>
             <span className="text-sm font-mono font-bold text-emerald-300/80">
-              (+₹{Math.round(expReturnInr).toLocaleString()})
+              (+₹{Math.round(expReturnInr).toLocaleString()} Gross)
             </span>
           </div>
           <div className="mt-2 text-xs font-mono text-slate-400 flex items-center justify-between">
-            <span>Ann. Return: <strong className="text-emerald-400">+{activeMetric?.annualized_return_pct?.toFixed(1)}%</strong></span>
-            <span>Vol: <strong className="text-cyan-400">{activeMetric?.annualized_vol_pct?.toFixed(1)}%</strong></span>
+            <span>Net after charges: <strong className={netExpReturnInr >= 0 ? "text-emerald-400" : "text-rose-400"}>{netExpReturnInr >= 0 ? '+' : ''}₹{Math.round(netExpReturnInr).toLocaleString()}</strong></span>
+            <span>Fees: <strong className="text-amber-400">₹{totalChargesInr.toFixed(0)}</strong></span>
           </div>
         </div>
 
@@ -1510,6 +1512,12 @@ export const PortfolioManagerSlide: React.FC<Props> = ({
             <div>
               <span className="text-slate-500 block text-[11px]">Total Est. Regulatory Fees:</span>
               <span className="font-bold text-amber-400 text-sm">₹{blotter_summary.total_est_zerodha_charges.toFixed(2)}</span>
+            </div>
+            <div>
+              <span className="text-slate-500 block text-[11px]">Net Exp. P&amp;L (After Fees):</span>
+              <span className={`font-extrabold text-sm ${netExpReturnInr >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {netExpReturnInr >= 0 ? '+' : ''}₹{Math.round(netExpReturnInr).toLocaleString()}
+              </span>
             </div>
           </div>
 

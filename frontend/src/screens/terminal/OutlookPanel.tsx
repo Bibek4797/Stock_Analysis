@@ -1,7 +1,9 @@
 import { ArrowUpRight } from 'lucide-react'
 import type { Forecast, Signal, Stock } from '@/data/market'
+import type { Position } from '@/data/portfolio'
 import { Chip, KV, Label, Panel, type Tone } from '@/components/ui'
 import { cx, inr, inrSigned, num, pct } from '@/lib/format'
+import { calculateStockPnL } from '@/lib/charges'
 
 export const SIGNAL_TONE: Record<Signal, Tone> = {
   'Strong Buy': 'up',
@@ -97,15 +99,34 @@ function Ladder({ fc }: { fc: Forecast }) {
 export function OutlookPanel({
   stock,
   fc,
+  capital = 100000,
+  pos,
   onValidate,
 }: {
   stock: Stock
   fc: Forecast
+  capital?: number
+  pos?: Position
   onValidate: () => void
 }) {
-  const stake = 100000
   const H = fc.horizon
   const upRet = fc.expRet >= 0
+
+  // Sizing: if position exists in basket, use pos.invested & pos.shares.
+  // Otherwise, use 1 standard tranche of capital (12.5% slot or stock price)
+  const allocCapital = pos ? pos.invested : Math.max(stock.price, Math.round(capital * 0.125))
+  const forcedShares = pos ? pos.shares : undefined
+
+  const pnl = calculateStockPnL({
+    stockPrice: fc.price,
+    capitalAllocated: allocCapital,
+    expRet: fc.expRet,
+    targetPrice: fc.target,
+    stopPrice: fc.stop,
+    isEtf: stock.sector === 'ETF',
+    forcedShares,
+  })
+
   return (
     <Panel
       title={`${H}-day outlook · ${stock.symbol}`}
@@ -127,8 +148,20 @@ export function OutlookPanel({
           >
             {pct(fc.expRet)}
           </div>
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] font-mono">
+            <span className="text-fg-4">Net return:</span>
+            <span
+              className={cx(
+                'font-semibold',
+                pnl.netReturnPct >= 0 ? 'text-up' : 'text-down',
+              )}
+            >
+              {pct(pnl.netReturnPct / 100)}
+            </span>
+            <span className="text-[10px] text-fg-4">after Zerodha charges</span>
+          </div>
         </div>
-        <div className="w-[120px] pb-1">
+        <div className="w-[125px] pb-1">
           <div className="flex items-baseline justify-between">
             <Label>Hit rate</Label>
             <span className="num text-[12px] font-medium text-fg">
@@ -141,6 +174,9 @@ export function OutlookPanel({
               style={{ width: `${fc.confidence}%` }}
             />
           </div>
+          <div className="mt-1 text-right text-[10px] text-fg-4 font-mono truncate">
+            {pnl.shares > 0 ? `${pnl.shares} sh @ ${inr(fc.price, 0)}` : `Min 1 sh: ${inr(fc.price, 0)}`}
+          </div>
         </div>
       </div>
 
@@ -152,13 +188,39 @@ export function OutlookPanel({
         <KV k="Target" v={inr(fc.target, 2)} />
         <KV k="Stop" v={inr(fc.stop, 2)} />
         <KV
-          k="P&L / ₹1L"
-          v={inrSigned(fc.expRet * stake)}
-          tone={upRet ? 'up' : 'down'}
+          k="Exp. P&L (Gross)"
+          v={inrSigned(pnl.grossPnl)}
+          sub={pnl.shares > 0 ? `${pnl.shares} sh · ${inr(pnl.invested)}` : '0 sh (Exceeds slot)'}
+          tone={pnl.grossPnl >= 0 ? 'up' : 'down'}
         />
-        <KV k="Tail loss / ₹1L" v={inrSigned(fc.tail * stake)} tone="down" />
-        <KV k="Swing (1σ·1.2)" v={`±${(fc.swing * 100).toFixed(2)}%`} />
-        <KV k="CVaR 95%" v={pct(fc.tail)} tone="down" />
+        <KV
+          k="Exp. P&L (After charges)"
+          v={inrSigned(pnl.netPnl)}
+          sub={pnl.shares > 0 ? `${pct(pnl.netReturnPct / 100)} net` : 'No whole share'}
+          tone={pnl.netPnl >= 0 ? 'up' : 'down'}
+        />
+        <KV
+          k="Zerodha charges (Est.)"
+          v={inr(pnl.charges.totalCharges, 2)}
+          sub={pnl.shares > 0 ? `STT ${inr(pnl.charges.stt, 0)} · DP ₹15.34 · GST` : '₹0 charges'}
+        />
+        <KV
+          k="Target P&L (Net)"
+          v={inrSigned(pnl.targetPnl.netPnl)}
+          sub={`At ${inr(fc.target, 2)}`}
+          tone={pnl.targetPnl.netPnl >= 0 ? 'up' : 'down'}
+        />
+        <KV
+          k="Stop loss (Net)"
+          v={inrSigned(pnl.stopPnl.netPnl)}
+          sub={`At ${inr(fc.stop, 2)}`}
+          tone="down"
+        />
+        <KV
+          k="CVaR 95% Tail risk"
+          v={inrSigned(fc.tail * (pnl.invested > 0 ? pnl.invested : allocCapital))}
+          tone="down"
+        />
         <KV k="Ann. volatility" v={`${(fc.annVol * 100).toFixed(1)}%`} />
         <KV
           k="Reward / risk"
