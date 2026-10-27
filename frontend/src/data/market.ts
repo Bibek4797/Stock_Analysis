@@ -387,8 +387,17 @@ export function forecast(
       feature = 'mlp'
     }
   }
-  const retSel = opts?.returnModel ?? 'auto'
-  const riskSel = opts?.riskModel ?? 'auto'
+  const rawRetSel = opts?.returnModel ?? 'auto'
+  // Synchronous Model Resolution:
+  // - logret -> SARIMAX (linear scalar autoregression)
+  // - mlp    -> Deep LSTM (multi-dimensional latent sequential model)
+  const retSel = rawRetSel === 'auto' ? (feature === 'mlp' ? 'lstm' : 'sarimax') : rawRetSel
+
+  const rawRiskSel = opts?.riskModel ?? 'auto'
+  // Synchronous Volatility Resolution:
+  // - logret -> GJR-GARCH (parametric asymmetry)
+  // - mlp    -> Hybrid GJR-LSTM (latent volatility alpha)
+  const riskSel = rawRiskSel === 'auto' ? (feature === 'mlp' ? 'hybrid' : 'gjr') : rawRiskSel
 
   const rSeed = hashStr(`${s.symbol}:${horizon}:${feature}:${retSel}:${riskSel}:${refit}:${opts?.entryIdx ?? 'live'}`)
   const r = rng(rSeed)
@@ -425,7 +434,7 @@ export function forecast(
   const bars = getHistory(s.symbol)
   const subBars = opts?.entryIdx !== undefined ? bars.slice(0, opts.entryIdx + 1) : bars
   const gjrVol = computeGjrGarchVol(subBars, s.vol)
-  const baseVol = (riskSel === 'gjr' || riskSel === 'auto') ? gjrVol : s.vol
+  const baseVol = (riskSel === 'gjr' || (riskSel as string) === 'auto') ? gjrVol : s.vol
   const effVol = baseVol * volMultiplier
   const effDv = effVol / Math.sqrt(252)
   const sigmaH = effDv * Math.sqrt(horizon)

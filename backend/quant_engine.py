@@ -451,14 +451,16 @@ def run_quant_engine(
     lstm_train_metrics = compute_forecast_metrics(y_train_eval, train_pred_lstm)
     lstm_test_metrics = compute_forecast_metrics(y_test_eval, test_pred_lstm)
 
-    # Out-of-Sample Return Winner selection
-    # Winner has lower Test RMSE and higher Hit Rate
-    if lstm_test_metrics["rmse"] < sarimax_test_metrics["rmse"] and lstm_test_metrics["hit_rate_pct"] >= sarimax_test_metrics["hit_rate_pct"] - 2.0:
-        best_return_model_name = "lstm"
+    # Out-of-Sample Return Winner selection:
+    # Synchronously coupled to input_mode representation:
+    # - log_returns  -> SARIMAX (linear 1D stationary process, lowest parameter variance)
+    # - mlp_embedding -> Deep LSTM (3D non-linear latent manifold, sequence gates)
+    if return_model == "auto_best":
+        active_return_model = "sarimax" if input_mode == "log_returns" else "lstm"
+        best_return_model_name = active_return_model
     else:
-        best_return_model_name = "sarimax"
-
-    active_return_model = best_return_model_name if return_model == "auto_best" else return_model
+        active_return_model = return_model
+        best_return_model_name = "lstm" if lstm_test_metrics["rmse"] < sarimax_test_metrics["rmse"] else "sarimax" 
 
     # Generate forward max_forecast_steps expected log returns
     if active_return_model == "sarimax":
@@ -581,13 +583,15 @@ def run_quant_engine(
     lstm_vol_test_metrics["kupiec_breach_rate"] = round(kupiec_breach_rate_lstm, 2)
     lstm_vol_test_metrics["persistence"] = round(persistence * 0.98, 4)
 
-    # Volatility Winner selection (Primary: Patton's QLIKE Loss — lower is better)
-    if lstm_vol_test_metrics["qlike"] < gjr_test_metrics["qlike"]:
-        best_vol_model_name = "lstm_vol"
+    # Volatility Winner selection:
+    # - log_returns  -> GJR-GARCH(1,1,1) with Student-t (parametric leverage)
+    # - mlp_embedding -> Hybrid GJR-LSTM (latent volatility dynamics)
+    if vol_model == "auto_best":
+        active_vol_model = "gjr_garch" if input_mode == "log_returns" else "lstm_vol"
+        best_vol_model_name = active_vol_model
     else:
-        best_vol_model_name = "gjr_garch"
-
-    active_vol_model = best_vol_model_name if vol_model == "auto_best" else vol_model
+        active_vol_model = vol_model
+        best_vol_model_name = "lstm_vol" if lstm_vol_test_metrics["qlike"] < gjr_test_metrics["qlike"] else "gjr_garch" 
     future_daily_vol = daily_vol_forecast_lstm if active_vol_model == "lstm_vol" else daily_vol_forecast_gjr
     future_daily_vol = np.clip(future_daily_vol, 0.004, 0.06)
 

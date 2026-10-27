@@ -193,9 +193,9 @@ export function Sidebar({
             onChange={(f) => onFeatureChange?.(f as FeatureSet)}
           />
           <div className="mt-1 text-[9.5px] text-fg-4 leading-tight">
-            {isMarketInCrash().isCrash
-              ? 'Crash regime active -> Log Returns (direct robust price momentum)'
-              : 'Steady regime active -> MLP Bottleneck (multi-factor alpha & RSI)'}
+            {(feature === 'auto' ? resolveFeatureSet('auto', isMarketInCrash().isCrash) : feature) === 'logret'
+              ? 'Log Returns active → Linked to SARIMAX (Linear Stationary)'
+              : 'MLP Bottleneck active → Linked to Deep Sequence LSTM (Non-Linear)'}
           </div>
         </div>
 

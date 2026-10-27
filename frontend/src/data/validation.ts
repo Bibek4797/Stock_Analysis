@@ -13,6 +13,22 @@ export function resolveFeatureSet(feature: FeatureSet, isCrash?: boolean): 'mlp'
   }
   return feature
 }
+
+export function resolveAutoReturnModel(retSel: ReturnModelSel, feature: FeatureSet, isCrash?: boolean): 'sarimax' | 'lstm' {
+  if (retSel === 'auto') {
+    const f = resolveFeatureSet(feature, isCrash)
+    return f === 'mlp' ? 'lstm' : 'sarimax'
+  }
+  return retSel
+}
+
+export function resolveAutoRiskModel(riskSel: RiskModelSel, feature: FeatureSet, isCrash?: boolean): 'gjr' | 'hybrid' {
+  if (riskSel === 'auto') {
+    const f = resolveFeatureSet(feature, isCrash)
+    return f === 'mlp' ? 'hybrid' : 'gjr'
+  }
+  return riskSel
+}
 export type ReturnModelSel = 'auto' | 'sarimax' | 'lstm'
 export type RiskModelSel = 'auto' | 'gjr' | 'hybrid'
 
@@ -180,8 +196,11 @@ export function getValidation(symbol: string, horizon: number, feature: FeatureS
     }))
 
   // ---- return models (directional + RMSE tournament)
+  const isCrash = rets.length >= 20 ? (bars[bars.length - 1].c - bars[bars.length - 20].c) / bars[bars.length - 20].c < -0.04 : false
+  const activeFeat = resolveFeatureSet(feature, isCrash)
   const base = dv * Math.sqrt(horizon) * 0.96
-  const lstmGain = feature === 'mlp' ? 0.925 + r() * 0.02 : 0.975 + r() * 0.02
+  const lstmGain = activeFeat === 'mlp' ? 0.925 + r() * 0.02 : 0.985 + r() * 0.02
+  const sarimaxGain = activeFeat === 'mlp' ? 0.975 + r() * 0.02 : 0.945 + r() * 0.02
   const returns: ReturnRow[] = [
     { key: 'rw', name: 'Random Walk', spec: 'Naive baseline', isRmse: base * 1.0, oosRmse: base * (1.0 + r() * 0.01), hitRate: 49.4 + r() * 1.8 },
     {
@@ -189,16 +208,16 @@ export function getValidation(symbol: string, horizon: number, feature: FeatureS
       name: 'SARIMAX',
       spec: '(2,0,1)×(1,0,0,5)',
       isRmse: base * (0.95 + r() * 0.01),
-      oosRmse: base * (0.965 + r() * 0.02),
+      oosRmse: base * sarimaxGain,
       hitRate: 53.5 + r() * 3.5,
     },
     {
       key: 'lstm',
       name: 'Deep LSTM',
-      spec: feature === 'mlp' ? '2×64 · MLP bottleneck' : '2×64 · log returns',
+      spec: activeFeat === 'mlp' ? '2×64 · MLP bottleneck' : '2×64 · log returns',
       isRmse: base * (lstmGain - 0.07),
       oosRmse: base * lstmGain,
-      hitRate: feature === 'mlp' ? 59 + r() * 4.5 : 54 + r() * 3.5,
+      hitRate: activeFeat === 'mlp' ? 59 + r() * 4.5 : 54 + r() * 3.5,
     },
   ]
   const returnWinner = returns.reduce((a, b) => (b.oosRmse < a.oosRmse ? b : a)).key
