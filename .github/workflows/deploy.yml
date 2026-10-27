@@ -40,6 +40,13 @@ jobs:
         run: |
           python scripts/update_market_data.py
 
+      - name: Commit and push updated market data back to main
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add frontend/src/data/real_history.json frontend/src/data/market.ts backend/main.py
+          git diff --staged --quiet || (git commit -m "Automated daily market close sync [skip ci]" && git push origin main)
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -68,3 +75,9 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./frontend/dist

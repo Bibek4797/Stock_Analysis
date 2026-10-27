@@ -199,5 +199,30 @@ def run_update():
 
     print(f"Updated {market_path} successfully!")
 
+    # 3. Write backend/main.py UNIVERSE_CONFIG
+    main_py_path = "backend/main.py"
+    if os.path.exists(main_py_path):
+        with open(main_py_path, "r", encoding="utf-8") as f:
+            m_lines = f.readlines()
+
+        new_m_lines = []
+        for line in m_lines:
+            m = re.search(r'"display_symbol":\s*"([^"]+)"', line)
+            if not m:
+                m = re.search(r'"symbol":\s*"([^"]+)"', line)
+            if m:
+                s_name = m.group(1).replace(".NS", "")
+                if s_name in today_settled_prices:
+                    p = today_settled_prices[s_name]["close"]
+                    c = today_settled_prices[s_name]["change_pct"]
+                    line = re.sub(r'"base_price":\s*[\d\.]+', f'"base_price": {p}', line)
+                    line = re.sub(r'"change_pct":\s*[-]?[\d\.]+', f'"change_pct": {c}', line)
+            new_m_lines.append(line)
+
+        with open(main_py_path, "w", encoding="utf-8", newline="\r\n") as f:
+            f.writelines(new_m_lines)
+        print(f"Updated {main_py_path} UNIVERSE_CONFIG successfully!")
+
 if __name__ == "__main__":
+    import re
     run_update()
