@@ -172,7 +172,8 @@ export default function App() {
 
   const stock = activeStockMap[symbol] ?? STOCK_MAP['RELIANCE'] ?? STOCKS[0]
 
-  const price = livePriceMap[symbol] ?? simulatedTickPrices[symbol] ?? stock.price
+  const rawP = livePriceMap[symbol] ?? simulatedTickPrices[symbol] ?? stock.price
+  const price = typeof rawP === 'number' && !isNaN(rawP) && rawP > 0 ? rawP : (stock.price > 0 ? stock.price : 1000.0)
 
 
 
@@ -246,18 +247,28 @@ export default function App() {
           if (payload.market_date) setMarketDataDate(payload.market_date)
           const pMap: Record<string, number> = {}
           for (const [sym, q] of Object.entries(payload.quotes)) {
-            pMap[sym] = (q as any).price
+            const rawVal = (q as any)?.price ?? (q as any)?.close
+            const p = typeof rawVal === 'number' ? rawVal : Number(rawVal)
+            if (!isNaN(p) && p > 0) {
+              pMap[sym] = p
+            }
           }
-          setLivePriceMap((prev) => ({ ...prev, ...pMap }))
-          setStocksList((prev) =>
-            prev.map((s) => {
-              const q = payload.quotes[s.symbol]
-              if (q) {
-                return { ...s, price: q.price, change: q.change_pct / 100 }
-              }
-              return s
-            })
-          )
+          if (Object.keys(pMap).length > 0) {
+            setLivePriceMap((prev) => ({ ...prev, ...pMap }))
+            setStocksList((prev) =>
+              prev.map((s) => {
+                const q = payload.quotes[s.symbol]
+                if (!q) return s
+                const rawVal = q.price ?? q.close
+                const p = typeof rawVal === 'number' ? rawVal : Number(rawVal)
+                if (!isNaN(p) && p > 0) {
+                  const chg = typeof q.change_pct === 'number' ? q.change_pct / 100 : s.change
+                  return { ...s, price: p, change: chg }
+                }
+                return s
+              })
+            )
+          }
         }
       }
     } catch (e) {

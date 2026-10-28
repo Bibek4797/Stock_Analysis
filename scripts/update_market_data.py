@@ -148,6 +148,7 @@ def run_update():
             date_str = datetime.fromtimestamp(last_bar["t"] / 1000).strftime("%Y-%m-%d")
 
             today_settled_prices[sym] = {
+                "price": last_bar["c"],
                 "close": last_bar["c"],
                 "prev_close": prev_bar["c"],
                 "open": last_bar["o"],
