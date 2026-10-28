@@ -2,7 +2,7 @@ import { cx } from '@/lib/format'
 import type { MarketStatus } from '@/lib/hooks'
 import { StatusDot } from './ui'
 import type { UserAccount } from '@/lib/auth'
-import { Shield, User, LogOut } from 'lucide-react'
+import { Shield, User, LogOut, RefreshCw } from 'lucide-react'
 
 export type Tab = 'terminal' | 'risk' | 'portfolio' | 'verification' | 'admin'
 
@@ -21,6 +21,9 @@ export function TopNav({
   busy,
   currentUser,
   onLogout,
+  marketDataDate,
+  isSyncingPrices,
+  onSyncPrices,
 }: {
   tab: Tab
   onTab: (t: Tab) => void
@@ -29,6 +32,9 @@ export function TopNav({
   busy: boolean
   currentUser?: UserAccount | null
   onLogout?: () => void
+  marketDataDate?: string
+  isSyncingPrices?: boolean
+  onSyncPrices?: () => void
 }) {
   const open = status === 'OPEN'
   const statusTone = open ? 'up' : status === 'PRE-OPEN' ? 'warn' : 'neutral'
@@ -103,7 +109,21 @@ export function TopNav({
           })}
         </div>
 
-        <div className="flex flex-1 items-center justify-end gap-3 sm:gap-4">
+        <div className="flex flex-1 items-center justify-end gap-2.5 sm:gap-3.5">
+          {onSyncPrices && (
+            <button
+              onClick={onSyncPrices}
+              disabled={isSyncingPrices}
+              title={`Latest Settled Data: ${marketDataDate || 'Today'}. Click to re-fetch live market quotes.`}
+              className="flex items-center gap-1.5 rounded-md border border-line bg-surface-2 px-2 py-1 text-[11px] font-mono font-medium text-fg-2 transition-colors hover:border-accent/50 hover:text-accent active:scale-95 disabled:opacity-60"
+            >
+              <RefreshCw className={cx('size-3 text-accent', isSyncingPrices && 'animate-spin')} />
+              <span className="hidden sm:inline">
+                {marketDataDate ? `Settled: ${marketDataDate}` : 'Sync Quotes'}
+              </span>
+            </button>
+          )}
+
           <div className="hidden items-center gap-2 text-[12px] md:flex">
             <StatusDot tone={statusTone} pulse={open} />
             <span className={open ? 'text-fg-2' : 'text-fg-3'}>

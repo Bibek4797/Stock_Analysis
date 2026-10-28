@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 
 import {
 
@@ -105,6 +105,8 @@ export default function App() {
   const [livePriceMap, setLivePriceMap] = useState<Record<string, number>>({})
 
   const [chartBars, setChartBars] = useState<Bar[] | undefined>(undefined)
+  const [marketDataDate, setMarketDataDate] = useState<string>('2026-10-28')
+  const [isSyncingPrices, setIsSyncingPrices] = useState<boolean>(false)
 
 
 
@@ -188,99 +190,94 @@ export default function App() {
 
 
 
-  // 1. Sync Central Accounts & Fetch Universe from Real Backend on Mount
-
-  useEffect(() => {
-
-    syncUsersWithServer().catch(() => {})
-
-    fetchUniverse()
-
-      .then((res) => {
-
+  // 1. Dynamic Live Quote Fetcher (Backend / Static Live Quotes fallback)
+  const syncLiveQuotes = useCallback(async () => {
+    setIsSyncingPrices(true)
+    try {
+      // 1. Try local backend /api/universe first
+      try {
+        const res = await fetchUniverse()
         if (res?.universe?.equities && res.universe.equities.length > 0) {
-
           const allItems = [...res.universe.equities, ...(res.universe.etfs || [])]
-
           const mapped: Stock[] = allItems.map((item) => {
-
             const sym = item.display_symbol || item.symbol.replace('.NS', '')
-
             let sec: Sector = 'Bank'
-
             const s = item.sector || ''
-
             if (s.includes('IT') || s.includes('Tech')) sec = 'IT'
-
             else if (s.includes('Energy') || s.includes('Oil') || s.includes('Power')) sec = 'Energy'
-
             else if (s.includes('Auto') || s.includes('EV')) sec = 'Auto'
-
             else if (s.includes('Pharma') || s.includes('Health')) sec = 'Pharma'
-
             else if (s.includes('FMCG') || s.includes('Consumer')) sec = 'FMCG'
-
             else if (s.includes('Metal') || s.includes('Infra')) sec = 'Metals'
-
             else if (s.includes('ETF') || s.includes('Hedge')) sec = 'ETF'
 
-
-
-            const p = item.base_price ?? 1000.0
-
-            const chg = item.change_pct !== undefined ? item.change_pct / 100 : 0.005
-
             return {
-
               symbol: sym,
-
               name: item.name,
-
               sector: sec,
-
               sectorLabel: item.sector,
-
-              price: p,
-
-              change: chg,
-
+              price: item.base_price ?? 1000.0,
+              change: item.change_pct !== undefined ? item.change_pct / 100 : 0.005,
               vol: 0.22,
-
               drift: 0.005,
-
             }
-
           })
 
           if (mapped.length > 0) {
-
             setStocksList(mapped)
-
             const pMap: Record<string, number> = {}
-
             mapped.forEach((m) => {
-
               pMap[m.symbol] = m.price
-
             })
-
             setLivePriceMap((prev) => ({ ...pMap, ...prev }))
-
+            return
           }
-
         }
+      } catch {
+        // Backend offline, fallback to runtime live_quotes.json
+      }
 
-      })
-
-      .catch((err) => {
-
-        // Fallback to baseline STOCKS cleanly if backend is offline
-
-        console.warn('Real universe fetch notice:', err.message)
-
-      })
-
+      // 2. Fetch live_quotes.json with cache buster
+      const baseUrl = import.meta.env.BASE_URL || './'
+      const qRes = await fetch(`${baseUrl}live_quotes.json?_t=${Date.now()}`, { cache: 'no-store' })
+      if (qRes.ok) {
+        const payload = await qRes.json()
+        if (payload?.quotes) {
+          if (payload.market_date) setMarketDataDate(payload.market_date)
+          const pMap: Record<string, number> = {}
+          for (const [sym, q] of Object.entries(payload.quotes)) {
+            pMap[sym] = (q as any).price
+          }
+          setLivePriceMap((prev) => ({ ...prev, ...pMap }))
+          setStocksList((prev) =>
+            prev.map((s) => {
+              const q = payload.quotes[s.symbol]
+              if (q) {
+                return { ...s, price: q.price, change: q.change_pct / 100 }
+              }
+              return s
+            })
+          )
+        }
+      }
+    } catch (e) {
+      console.warn('Live quotes dynamic fetch notice:', e)
+    } finally {
+      setIsSyncingPrices(false)
+    }
   }, [])
+
+  useEffect(() => {
+    syncUsersWithServer().catch(() => {})
+    syncLiveQuotes()
+
+    // Auto-refresh quotes every 60s
+    const timer = setInterval(() => {
+      syncLiveQuotes()
+    }, 60000)
+
+    return () => clearInterval(timer)
+  }, [syncLiveQuotes])
 
 
 
@@ -604,21 +601,16 @@ export default function App() {
     <div className="min-h-dvh bg-canvas text-fg flex flex-col">
 
       <TopNav
-
         tab={tab}
-
         onTab={go}
-
         time={time}
-
         status={status}
-
         busy={navBusy || workBusy}
-
         currentUser={currentUser}
-
         onLogout={handleLogout}
-
+        marketDataDate={marketDataDate}
+        isSyncingPrices={isSyncingPrices}
+        onSyncPrices={syncLiveQuotes}
       />
 
       <main key={tab} className="flex-1 animate-fade-in">

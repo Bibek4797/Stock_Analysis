@@ -166,6 +166,21 @@ def run_update():
         json.dump(output_history, f)
     print(f"Saved authentic history to {history_path}")
 
+    # 1b. Write live_quotes.json for runtime dynamic client fetch
+    now_str = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    sample_sym = next(iter(today_settled_prices.keys())) if today_settled_prices else None
+    market_date_val = today_settled_prices[sample_sym]["date"] if sample_sym else datetime.now().strftime("%Y-%m-%d")
+    quotes_payload = {
+        "updated_at": now_str,
+        "market_date": market_date_val,
+        "quotes": today_settled_prices
+    }
+    for q_path in ["frontend/public/live_quotes.json", "frontend/src/data/live_quotes.json"]:
+        os.makedirs(os.path.dirname(q_path), exist_ok=True)
+        with open(q_path, "w", encoding="utf-8") as f:
+            json.dump(quotes_payload, f, indent=2)
+    print("Saved live_quotes.json to public/ and src/data/ successfully!")
+
     # 2. Write market.ts RAW
     raw_lines = ["const RAW: Raw[] = ["]
     current_sector = None

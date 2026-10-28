@@ -4,8 +4,14 @@ on:
   push:
     branches: [main]
   schedule:
-    # Run every Monday-Friday at 10:45 UTC (16:15 IST - 45 mins after NSE closes at 15:30)
-    - cron: '45 10 * * 1-5'
+    # Run every trading hour during NSE market hours (09:15 to 16:15 IST / 03:45 to 10:45 UTC)
+    # 03:45 UTC = 09:15 IST (Market Open)
+    # 05:00 UTC = 10:30 IST (Morning Session)
+    # 07:00 UTC = 12:30 IST (Midday Session)
+    # 09:00 UTC = 14:30 IST (Afternoon Session)
+    # 10:15 UTC = 15:45 IST (Market Close Settlement)
+    # 10:45 UTC = 16:15 IST (Final Bhavcopy Settled)
+    - cron: '45 3,5,7,9,10 * * 1-5'
   workflow_dispatch:
 
 permissions:
@@ -44,8 +50,8 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add frontend/src/data/real_history.json frontend/src/data/market.ts backend/main.py
-          git diff --staged --quiet || (git commit -m "Automated daily market close sync [skip ci]" && git push origin main)
+          git add frontend/src/data/real_history.json frontend/public/live_quotes.json frontend/src/data/live_quotes.json frontend/src/data/market.ts backend/main.py
+          git diff --staged --quiet || (git commit -m "Automated hourly NSE market quote sync [skip ci]" && git push origin main)
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

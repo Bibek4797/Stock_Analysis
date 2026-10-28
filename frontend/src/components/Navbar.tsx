@@ -1,13 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { ViewTab } from '../types';
-import { Zap, LayoutDashboard, LineChart, PieChart, Clock } from 'lucide-react';
+import { Zap, LayoutDashboard, LineChart, PieChart, Clock, RefreshCw } from 'lucide-react';
 
 interface NavbarProps {
   currentTab: ViewTab;
   onTabChange: (tab: ViewTab) => void;
+  marketDataDate?: string;
+  isSyncingPrices?: boolean;
+  onSyncPrices?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ currentTab, onTabChange }) => {
+export const Navbar: React.FC<NavbarProps> = ({
+  currentTab,
+  onTabChange,
+  marketDataDate,
+  isSyncingPrices,
+  onSyncPrices,
+}) => {
   const [istTime, setIstTime] = useState<string>('');
   const [date, setDate] = useState<string>('');
 
@@ -58,55 +67,41 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onTabChange }) => {
               className="text-[13px] font-extrabold text-white"
               style={{
                 fontFamily: "'JetBrains Mono', monospace",
-                letterSpacing: '0.18em',
-                textShadow: '0 0 16px rgba(16,185,129,0.12)',
+                letterSpacing: '0.08em',
               }}
             >
               Q-ALPHA
             </span>
-            <span className="text-slate-700 text-[10px] font-mono select-none">//</span>
-            <span className="text-[10px] font-medium tracking-[0.14em] text-slate-500 uppercase">
-              NSE Quant Terminal
+            <span
+              className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded tracking-widest uppercase"
+              style={{
+                background: 'rgba(16,185,129,0.12)',
+                border: '1px solid rgba(16,185,129,0.3)',
+                color: '#34D399',
+              }}
+            >
+              NSE
             </span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-dot shadow-[0_0_6px_rgba(16,185,129,0.5)]" />
-            <span className="text-[9.5px] font-mono text-emerald-500/80 tracking-[0.08em]">
-              NSE EQUITY &amp; PORTFOLIO TERMINAL
-            </span>
-          </div>
+          <span className="text-[10px] text-slate-500 font-mono tracking-wider hidden sm:block">
+            Institutional Quantitative Terminal
+          </span>
         </div>
       </div>
 
-      {/* ── CENTER: Slide Tab Switcher ────────────────── */}
-      <nav
-        className="flex items-center p-1 rounded-xl gap-1"
-        style={{
-          background: 'rgba(10,14,22,0.95)',
-          border: '1px solid rgba(30,36,48,0.6)',
-          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3)',
-        }}
-      >
+      {/* ── CENTER: Navigation Tabs ───────────────────── */}
+      <nav className="flex items-center gap-1.5 p-1 rounded-xl bg-[#090C12]/90 border border-[#1E2430]/70 backdrop-blur-sm">
         {tabs.map((tab) => {
           const isActive = currentTab === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={[
-                'flex items-center gap-2 px-5 py-2 rounded-lg text-[11px] font-semibold tracking-wide transition-all duration-250 ease-out cursor-pointer',
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-mono font-medium transition-all duration-200 ${
                 isActive
-                  ? 'text-emerald-300'
-                  : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.04]',
-                isActive ? 'tab-active-indicator' : '',
-              ].join(' ')}
-              style={isActive ? {
-                background: 'linear-gradient(135deg, rgba(16,185,129,0.14), rgba(6,182,212,0.07))',
-                border: '1px solid rgba(16,185,129,0.25)',
-                boxShadow: '0 0 14px rgba(16,185,129,0.1), 0 1px 2px rgba(0,0,0,0.2)',
-              } : {
-                border: '1px solid transparent',
-              }}
+                  ? 'bg-gradient-to-r from-emerald-500/15 to-cyan-500/15 text-white border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850/50'
+              }`}
             >
               <span className={`transition-colors duration-200 ${isActive ? 'text-emerald-400' : 'text-slate-600'}`}>{tab.icon}</span>
               <span>{tab.label}</span>
@@ -115,12 +110,31 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onTabChange }) => {
         })}
       </nav>
 
-      {/* ── RIGHT: Clock + Status ─────────────────────── */}
-      <div className="flex items-center gap-4">
+      {/* ── RIGHT: Clock + Data Sync + Status ─────────── */}
+      <div className="flex items-center gap-3">
+        {/* Dynamic Quote Sync Button */}
+        {onSyncPrices && (
+          <button
+            onClick={onSyncPrices}
+            disabled={isSyncingPrices}
+            title="Refresh with latest settled NSE prices"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-mono transition-all duration-200 hover:border-emerald-500/40 hover:bg-emerald-950/20 active:scale-95 disabled:opacity-60"
+            style={{
+              background: 'rgba(14,18,26,0.85)',
+              borderColor: 'rgba(30,36,48,0.85)',
+            }}
+          >
+            <RefreshCw className={`w-3 h-3 text-emerald-400 ${isSyncingPrices ? 'animate-spin' : ''}`} />
+            <span className="text-[10px] text-slate-300 font-medium hidden sm:inline">
+              {marketDataDate ? `Settled: ${marketDataDate}` : 'Sync'}
+            </span>
+          </button>
+        )}
+
         {/* Clock Block */}
         <div
           className="hidden md:flex flex-col items-end gap-0.5"
-          style={{ minWidth: '110px' }}
+          style={{ minWidth: '100px' }}
         >
           <div className="flex items-center gap-1.5">
             <Clock className="w-3 h-3 text-slate-500" />
@@ -131,7 +145,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onTabChange }) => {
               {istTime || '09:15:00'}
             </span>
           </div>
-          <span className="text-[10px] font-mono text-slate-500 tracking-wide">{date || '20 Oct 2026'} IST</span>
+          <span className="text-[10px] font-mono text-slate-500 tracking-wide">{date || '28 Oct 2026'} IST</span>
         </div>
 
         {/* Separator */}
@@ -139,7 +153,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, onTabChange }) => {
 
         {/* Live Feed Pill */}
         <div
-          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full transition-all duration-300 hover:shadow-[0_0_12px_rgba(16,185,129,0.15)]"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-all duration-300 hover:shadow-[0_0_12px_rgba(16,185,129,0.15)]"
           style={{
             background: 'rgba(16,185,129,0.07)',
             border: '1px solid rgba(16,185,129,0.2)',
