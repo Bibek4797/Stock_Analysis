@@ -240,7 +240,7 @@ export function VerificationScreen({
 
   // Default to latest market session (index 246) so it matches Terminal & Portfolio screens out of the box
   const defaultIndex = useMemo(() => {
-    return allSessions[allSessions.length - 1].index
+    return allSessions[allSessions.length - 1]?.index ?? 0
   }, [allSessions])
 
   const [selectedEntryIdx, setSelectedEntryIdx] = useState<number>(defaultIndex)
@@ -298,7 +298,13 @@ export function VerificationScreen({
     .map((t) => `${getX(t.day).toFixed(1)},${getY(t.portfolioValue).toFixed(1)}`)
     .join(' ')
 
-  const selectedSession = allSessions[selectedEntryIdx]
+  const selectedSession = allSessions[selectedEntryIdx] || allSessions[allSessions.length - 1] || {
+    index: 0,
+    displayDate: 'Current Session',
+    dateStr: '2026-10-28',
+    settledForwardDays: 0,
+    dayOfWeek: 'Wednesday',
+  }
 
   return (
     <div className="mx-auto max-w-[1560px] p-4 md:p-6 space-y-6">
