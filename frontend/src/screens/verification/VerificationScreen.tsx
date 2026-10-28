@@ -6,7 +6,7 @@ import {
   type VerificationReport,
   type DayStep,
 } from '@/data/verification'
-import { isMarketInCrash, type Strategy } from '@/data/portfolio'
+import { isMarketInCrash, getBestAlphaSymbols, type Strategy } from '@/data/portfolio'
 import { resolveFeatureSet, type FeatureSet, type ReturnModelSel, type RiskModelSel } from '@/data/validation'
 import { STRATEGY_META } from '@/data/portfolio'
 import { Panel, Chip, Seg, Stat } from '@/components/ui'
@@ -100,6 +100,25 @@ function CustomBasketModal({
               className="h-8 w-full rounded border border-line bg-canvas pl-8 pr-3 text-[12px] text-fg placeholder:text-fg-4 focus:border-accent outline-none"
             />
           </div>
+          <button
+            onClick={() => setTempSelected(getBestAlphaSymbols(100000, 5, {}, 8))}
+            className="flex items-center gap-1 rounded border border-up/50 bg-up/10 px-2.5 py-1 text-[11px] font-semibold text-up hover:bg-up/20 transition-colors"
+          >
+            <Sparkles className="size-3" />
+            <span>Best Alpha</span>
+          </button>
+          <button
+            onClick={() => setTempSelected(nonEtfStocks.filter((s) => s.price <= 1000).map((s) => s.symbol).slice(0, 8))}
+            className="rounded border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1 text-[11px] font-medium text-cyan-400 hover:bg-cyan-500/20 transition-colors"
+          >
+            Under ₹1,000
+          </button>
+          <button
+            onClick={() => setTempSelected(['HDFCBANK', 'TCS', 'INFY', 'ICICIBANK', 'RELIANCE', 'SBIN', 'LT', 'ITC'].filter((sym) => nonEtfStocks.some((s) => s.symbol === sym)))}
+            className="rounded border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-400 hover:bg-amber-500/20 transition-colors"
+          >
+            Bluechips
+          </button>
           <button
             onClick={() => setTempSelected(nonEtfStocks.map((s) => s.symbol))}
             className="rounded border border-line bg-surface-2 px-2.5 py-1 text-[11px] font-medium text-fg-3 hover:text-fg"

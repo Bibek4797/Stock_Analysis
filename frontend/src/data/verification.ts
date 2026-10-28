@@ -229,6 +229,9 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
     let hitTarget = false
     let hitStop = false
 
+    let exited = false
+    let exitPrice = item.p0
+
     for (let d = 1; d <= horizon; d++) {
       const fIdx = entryIdx + d
       if (fIdx < totalSessions) {
@@ -239,21 +242,32 @@ export function runModelVerification(opts: RunVerificationOptions): Verification
         const low = bar ? bar.l : close
         if (high > maxHigh) maxHigh = high
         if (low < minLow) minLow = low
-        if (high >= item.targetPrice) hitTarget = true
-        if (low <= item.stopPrice) hitStop = true
 
-        finalClose = close
+        if (!exited) {
+          if (high >= item.targetPrice) {
+            hitTarget = true
+            exited = true
+            exitPrice = item.targetPrice
+          } else if (low <= item.stopPrice) {
+            hitStop = true
+            exited = true
+            exitPrice = item.stopPrice
+          }
+        }
+
+        const effectivePrice = exited ? exitPrice : close
+        finalClose = effectivePrice
         const prevBar = bars[fIdx - 1]
         const prevClose = prevBar ? prevBar.c : item.p0
-        const changeRate = (close - prevClose) / prevClose
-        const returnFromEntryRate = (close - item.p0) / item.p0
+        const changeRate = (effectivePrice - prevClose) / prevClose
+        const returnFromEntryRate = (effectivePrice - item.p0) / item.p0
 
         dailySteps.push({
           day: d,
           dateStr: sess.dateStr,
-          price: close,
-          high,
-          low,
+          price: effectivePrice,
+          high: exited ? exitPrice : high,
+          low: exited ? exitPrice : low,
           changeRate,
           returnFromEntryRate,
           isSettled: true,

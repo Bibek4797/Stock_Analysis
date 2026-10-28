@@ -482,7 +482,7 @@ export function RiskScreen({
               <tr>
                 <th className={TH}>Horizon</th>
                 <th className={cx(TH, 'text-right')}>Exp. return</th>
-                <th className={cx(TH, 'text-right')}>Exp. price</th>
+                <th className={cx(TH, 'text-right')}>Target price</th>
                 <th className={cx(TH, 'text-right')}>Swing</th>
                 <th className={cx(TH, 'text-right')}>CVaR 95%</th>
                 <th className={cx(TH, 'text-right')}>Reward / risk</th>

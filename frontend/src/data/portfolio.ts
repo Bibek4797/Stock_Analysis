@@ -657,7 +657,9 @@ export function adaptPortfolio(
     const targetPrice = currentPrice * (1 + Math.max(0.008, rawTargetPct * hScale))
     const stopPrice = currentPrice * (1 + Math.min(-0.01, rawStopPct * hScale))
     const expRet = (targetPrice / currentPrice) - 1
-    const tail = (stopPrice / currentPrice) - 1
+    const tail = defaultTail
+    const stopLossPct = Math.abs(stopPrice / currentPrice - 1)
+    const computedRewardRisk = stopLossPct > 0.001 ? Math.round(((targetPrice / currentPrice - 1) / stopLossPct) * 100) / 100 : 1.45
     return {
       stock: s,
       fc: {
@@ -672,7 +674,7 @@ export function adaptPortfolio(
         rangeLo: currentPrice * (1 - sigmaH),
         rangeHi: currentPrice * (1 + sigmaH),
         annVol: effVol,
-        rewardRisk: b.reward_to_risk_ratio ?? Math.abs(expRet / Math.min(-0.001, tail)),
+        rewardRisk: b.reward_to_risk_ratio ?? computedRewardRisk,
         confidence: 65,
         signal: (b.quant_verdict?.toUpperCase().includes('BUY') ? 'Strong Buy' : 'Moderate Buy') as any,
         score: 75,

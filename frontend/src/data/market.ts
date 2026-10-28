@@ -460,12 +460,12 @@ export function forecast(
   const target = price * (1 + targetProfitPct)
   const stop = price * (1 + stopLossPct)
   const rewardRisk = targetProfitPct / Math.abs(stopLossPct)
-  const score = expRet / sigmaH
+  const score = expRet / Math.max(0.001, sigmaH)
   const confidence = clamp(52 + score * 12 + hitRateBoost, 46, 78)
   let signal: Signal = 'Avoid'
-  if (score > 0.95 && rewardRisk > 0.75) signal = 'Strong Buy'
-  else if (score > 0.35) signal = 'Moderate Buy'
-  else if (score > -0.1) signal = 'Hold'
+  if (score > 0.85 && rewardRisk >= 1.0) signal = 'Strong Buy'
+  else if (score > 0.30 && rewardRisk >= 0.70) signal = 'Moderate Buy'
+  else if (score > -0.10) signal = 'Hold'
 
   // Authentic Deep LSTM non-linear trajectory with tanh momentum saturation
   const trajectory: number[] = [price]
@@ -533,6 +533,9 @@ export function adaptForecast(
 
   const target = currentPrice * (1 + Math.max(0.008, baseTargetProfitPct * hScale))
   const stop = currentPrice * (1 + Math.min(-0.01, baseStopTailPct * hScale))
+  const targetProfitPct = target / currentPrice - 1
+  const stopLossPct = Math.abs(stop / currentPrice - 1)
+  const computedRewardRisk = stopLossPct > 0.001 ? Math.round((targetProfitPct / stopLossPct) * 100) / 100 : 1.45
 
   return {
     horizon: fallbackHorizon,
@@ -546,7 +549,7 @@ export function adaptForecast(
     rangeLo: currentPrice * (1 - volPct / 100),
     rangeHi: currentPrice * (1 + volPct / 100),
     annVol: annVolPct / 100,
-    rewardRisk: gtt?.reward_to_risk_ratio ?? 1.45,
+    rewardRisk: gtt?.reward_to_risk_ratio ?? computedRewardRisk,
     confidence: Math.round(cm?.oos_hit_rate ?? 62),
     signal,
     score: rec?.signal_score ?? 72,
