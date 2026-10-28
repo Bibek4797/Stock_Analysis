@@ -170,7 +170,8 @@ export function getBestAlphaSymbols(
     fc: forecast(s, prices[s.symbol] ?? s.price, horizon, { entryIdx }),
   }))
 
-  const maxPrice = Math.max(120, capital * 0.35)
+  const targetSize = capital < 20000 ? 4 : capital < 50000 ? 6 : count
+  const maxPrice = Math.max(150, (capital * 0.85 / targetSize) * 1.35)
   let pool = evaluated.filter((x) => x.fc.price <= maxPrice && (isCrash || x.fc.expRet > 0))
   if (pool.length < count) {
     pool = evaluated.filter((x) => x.fc.price <= maxPrice)
@@ -264,7 +265,7 @@ export function buildPortfolio(
 
     // 2. Filter candidates for price feasibility:
     //    A single share cannot exceed 35% of total capital (otherwise 0 shares or massive concentration)
-    const maxSinglePrice = Math.max(120, capital * 0.35)
+    const maxSinglePrice = Math.max(150, (capital * deploy / targetBasketSize) * 1.35)
     let candidates = allForecasts.filter((item) => {
       if (item.fc.price > maxSinglePrice) return false
       // Exclude stocks with negative expected drift unless market is in tail crash
@@ -413,21 +414,24 @@ export function buildPortfolio(
       }
     }
   }
-  const stockInvested = positions.reduce((a, p) => a + p.invested, 0)
+  // Clean out zero-share positions if any persist
+  const activePositions = positions.filter((p) => p.shares > 0)
+  const finalPositions = activePositions.length > 0 ? activePositions : positions
+  const stockInvested = finalPositions.reduce((a, p) => a + p.invested, 0)
   const cashPrice = prices[CASH_ETF] ?? STOCK_MAP[CASH_ETF].price
   const cashShares = Math.floor((capital - stockInvested) / cashPrice)
   const cashInvested = cashShares * cashPrice
   const totalInvested = stockInvested + cashInvested
   const cashFc = forecast(STOCK_MAP[CASH_ETF], cashPrice, horizon, effectiveFcOpts)
   const expRet =
-    positions.reduce((a, p) => a + p.actualWeight * p.fc.expRet, 0) + (cashInvested / capital) * cashFc.expRet
+    finalPositions.reduce((a, p) => a + p.actualWeight * p.fc.expRet, 0) + (cashInvested / capital) * cashFc.expRet
   const tail = Math.min(expRet - 1.85 * sigma, -0.0005)
-  const fees = positions.reduce((a, p) => a + p.fees, 0) + cashInvested * FEE_RATE
+  const fees = finalPositions.reduce((a, p) => a + p.fees, 0) + cashInvested * FEE_RATE
   return {
     regime,
     strategy,
     capital,
-    positions,
+    positions: finalPositions,
     cash: { shares: cashShares, invested: cashInvested, weight: cashInvested / capital, price: cashPrice },
     residual: capital - totalInvested,
     stockInvested,
