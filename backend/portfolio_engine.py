@@ -676,8 +676,12 @@ def build_zerodha_blotter(
         exp_ret_pct = float(info.get("expected_return_pct", 2.0))
 
         # GTT Bracket Execution Levels
-        stop_loss_gtt = round(float(ltp * np.exp(-max(0.015, cvar_loss_pct / 100.0))), 2)
-        target_profit_gtt = round(float(ltp * np.exp(max(0.02, max(exp_ret_pct / 100.0, 1.5 * (vol_pct / 100.0))))), 2)
+        # Stop-loss trigger: disciplined risk boundary (~0.85*vol), not extreme CVaR crash
+        stop_drop = max(0.012, 0.85 * (vol_pct / 100.0))
+        stop_loss_gtt = round(float(ltp * np.exp(-stop_drop)), 2)
+        # Target profit: aligned with expected return, not extreme 1.5*vol dispersion
+        target_upside = max(0.015, exp_ret_pct / 100.0) if exp_ret_pct > 0 else max(0.008, 0.35 * (vol_pct / 100.0))
+        target_profit_gtt = round(float(ltp * np.exp(target_upside)), 2)
         r_diff = max(0.5, ltp - stop_loss_gtt)
         t_diff = max(0.5, target_profit_gtt - ltp)
         reward_to_risk = round(float(t_diff / r_diff), 2)

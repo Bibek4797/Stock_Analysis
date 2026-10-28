@@ -240,12 +240,12 @@ export function KV({
   return (
     <div
       className={cx(
-        'flex h-[22px] items-center justify-between gap-3',
+        'flex min-w-0 h-[22px] items-center justify-between gap-1.5 overflow-hidden',
         className,
       )}
     >
-      <span className="truncate text-[11.5px] text-fg-3">{k}</span>
-      <span className="flex items-baseline gap-1.5 whitespace-nowrap">
+      <span className="min-w-0 truncate text-[11.5px] text-fg-3">{k}</span>
+      <span className="flex shrink-0 items-baseline gap-1 whitespace-nowrap text-right">
         <span
           className={cx(
             'num text-[12px] font-medium',
@@ -254,7 +254,11 @@ export function KV({
         >
           {v}
         </span>
-        {sub && <span className="num text-[11px] text-fg-3">{sub}</span>}
+        {sub && (
+          <span className="num text-[10.5px] text-fg-4 max-w-[75px] truncate">
+            {sub}
+          </span>
+        )}
       </span>
     </div>
   )

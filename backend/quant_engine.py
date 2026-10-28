@@ -784,13 +784,16 @@ def run_quant_engine(
             "test_pct": round(float(te_probs[b_idx] * 100.0), 1)
         })
 
-    # GTT Bracket Levels (Entry, CVaR Stop-Loss, Target Profit)
+    # GTT Bracket Levels (Entry, Stop-Loss, Target Profit)
     entry_ref_price = last_close
     cvar_drop = max(0.01, cvar_95_pct / 100.0)
-    stop_loss_gtt = round(float(entry_ref_price * np.exp(-cvar_drop)), 2)
+    # Operational Stop-Loss trigger: disciplined risk boundary (~0.85*sigma), not full CVaR catastrophe shock
+    stop_drop = max(0.012, 0.85 * (h_vol_pct / 100.0))
+    stop_loss_gtt = round(float(entry_ref_price * np.exp(-stop_drop)), 2)
     stop_loss_pct = round(((stop_loss_gtt - entry_ref_price) / entry_ref_price) * 100.0, 2)
 
-    target_upside = max(0.015, max(shrunk_return_pct / 100.0, 1.5 * (h_vol_pct / 100.0)))
+    # Operational Target Profit: aligned with expected return drift, not extreme volatility dispersion
+    target_upside = max(0.012, shrunk_return_pct / 100.0) if shrunk_return_pct > 0 else max(0.008, 0.35 * (h_vol_pct / 100.0))
     target_profit_gtt = round(float(entry_ref_price * np.exp(target_upside)), 2)
     target_profit_pct = round(((target_profit_gtt - entry_ref_price) / entry_ref_price) * 100.0, 2)
 

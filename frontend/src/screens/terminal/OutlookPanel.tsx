@@ -184,46 +184,54 @@ export function OutlookPanel({
         <Ladder fc={fc} />
       </div>
 
-      <div className="mt-2 grid grid-cols-2 gap-x-5 border-t border-line pt-1.5">
-        <KV k="Target" v={inr(fc.target, 2)} />
-        <KV k="Stop" v={inr(fc.stop, 2)} />
+      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-0.5 border-t border-line pt-1.5">
         <KV
-          k="Exp. P&L (Gross)"
+          k="Target"
+          v={inr(fc.target, 2)}
+          sub={pct(fc.target / fc.price - 1)}
+          tone={fc.target >= fc.price ? 'up' : 'down'}
+        />
+        <KV
+          k="Stop loss"
+          v={inr(fc.stop, 2)}
+          sub={pct(fc.stop / fc.price - 1)}
+          tone="down"
+        />
+        <KV
+          k="Exp. Gross"
           v={inrSigned(pnl.grossPnl)}
-          sub={pnl.shares > 0 ? `${pnl.shares} sh · ${inr(pnl.invested)}` : '0 sh (Exceeds slot)'}
+          sub={pnl.shares > 0 ? `${pnl.shares} sh` : '0 sh'}
           tone={pnl.grossPnl >= 0 ? 'up' : 'down'}
         />
         <KV
-          k="Exp. P&L (After charges)"
+          k="Exp. Net"
           v={inrSigned(pnl.netPnl)}
-          sub={pnl.shares > 0 ? `${pct(pnl.netReturnPct / 100)} net` : 'No whole share'}
+          sub={pnl.shares > 0 ? `${pct(pnl.netReturnPct / 100)}` : '0 sh'}
           tone={pnl.netPnl >= 0 ? 'up' : 'down'}
         />
         <KV
-          k="Zerodha charges (Est.)"
-          v={inr(pnl.charges.totalCharges, 2)}
-          sub={pnl.shares > 0 ? `STT ${inr(pnl.charges.stt, 0)} · DP ₹15.34 · GST` : '₹0 charges'}
-        />
-        <KV
-          k="Target P&L (Net)"
+          k="Target Net"
           v={inrSigned(pnl.targetPnl.netPnl)}
-          sub={`At ${inr(fc.target, 2)}`}
           tone={pnl.targetPnl.netPnl >= 0 ? 'up' : 'down'}
         />
         <KV
-          k="Stop loss (Net)"
+          k="Stop Net"
           v={inrSigned(pnl.stopPnl.netPnl)}
-          sub={`At ${inr(fc.stop, 2)}`}
           tone="down"
         />
         <KV
-          k="CVaR 95% Tail risk"
+          k="Est. charges"
+          v={inr(pnl.charges.totalCharges, 2)}
+          sub="STT+DP"
+        />
+        <KV
+          k="CVaR 95% Tail"
           v={inrSigned(fc.tail * (pnl.invested > 0 ? pnl.invested : allocCapital))}
           tone="down"
         />
-        <KV k="Ann. volatility" v={`${(fc.annVol * 100).toFixed(1)}%`} />
+        <KV k="Ann. vol" v={`${(fc.annVol * 100).toFixed(1)}%`} />
         <KV
-          k="Reward / risk"
+          k="Reward/Risk"
           v={`${fc.rewardRisk.toFixed(2)}×`}
           tone={fc.rewardRisk >= 1 ? 'up' : undefined}
         />

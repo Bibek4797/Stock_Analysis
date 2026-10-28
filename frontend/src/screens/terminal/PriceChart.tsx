@@ -643,7 +643,7 @@ export function PriceChart({
               className="num"
               fontWeight="500"
             >
-              Target {inr(fc.target, 2)} ({pct(fc.expRet)})
+              Target {inr(fc.target, 2)} ({pct(fc.target / price - 1)})
             </text>
             <text
               x={xNow - 6}
@@ -654,7 +654,7 @@ export function PriceChart({
               className="num"
               fontWeight="500"
             >
-              Stop {inr(fc.stop, 2)} ({pct(fc.tail)})
+              Stop {inr(fc.stop, 2)} ({pct(fc.stop / price - 1)})
             </text>
 
             {tags.map((t) => (

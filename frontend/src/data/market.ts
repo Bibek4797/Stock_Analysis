@@ -443,12 +443,23 @@ export function forecast(
   const dynamicExpRet = computeEconometricDrift(bars, s.symbol, horizon, opts?.entryIdx)
   const expRet = dynamicExpRet * driftMultiplier
   const swing = 1.2 * sigmaH
-  // Institutional Downside Tail Risk (CVaR equivalent) scales with sqrt(horizon).
+  // Institutional Downside Tail Risk (CVaR 95% equivalent) scales with sqrt(horizon)
   const tail = -Math.max(0.012, 1.85 * sigmaH)
-  const targetProfitPct = Math.max(0.015, Math.max(expRet, 1.5 * sigmaH))
+
+  // Calibrated Target & Stop Loss:
+  // Volatility (sigmaH) is statistical dispersion/uncertainty, NOT an extreme target.
+  // - Bullish (expRet > 0): Target aligns with expected drift; Stop Loss is a disciplined trailing risk boundary (~0.85*sigmaH).
+  // - Bearish/Neutral (expRet <= 0): Target is a conservative mean-reversion resistance ceiling (~0.35*sigmaH); Stop Loss is tight.
+  const targetProfitPct = expRet > 0
+    ? Math.max(0.012, expRet)
+    : Math.max(0.008, 0.35 * sigmaH)
+  const stopLossPct = expRet > 0
+    ? -Math.max(0.012, 0.85 * sigmaH)
+    : -Math.max(0.012, 0.75 * sigmaH)
+
   const target = price * (1 + targetProfitPct)
-  const stop = price * (1 + tail)
-  const rewardRisk = targetProfitPct / Math.abs(tail)
+  const stop = price * (1 + stopLossPct)
+  const rewardRisk = targetProfitPct / Math.abs(stopLossPct)
   const score = expRet / sigmaH
   const confidence = clamp(52 + score * 12 + hitRateBoost, 46, 78)
   let signal: Signal = 'Avoid'
@@ -513,10 +524,14 @@ export function adaptForecast(
   const annVolPct = cm?.annualized_vol_pct ?? (volPct * Math.sqrt(252 / fallbackHorizon))
   const cvarPct = (cm?.cvar_95_pct ?? 3.2) * hScale
 
-  const baseTargetProfitPct = cm?.target_price ? (cm.target_price / currentPrice - 1) : (expRetPct / 100)
-  const baseStopTailPct = gtt?.stop_loss_gtt ? (gtt.stop_loss_gtt / currentPrice - 1) : (-Math.abs(cvarPct) / 100)
+  const baseTargetProfitPct = cm?.target_price
+    ? (cm.target_price / currentPrice - 1)
+    : (expRetPct > 0 ? (expRetPct / 100) : Math.max(0.008, 0.35 * (volPct / 100)))
+  const baseStopTailPct = gtt?.stop_loss_gtt
+    ? (gtt.stop_loss_gtt / currentPrice - 1)
+    : -Math.max(0.012, 0.85 * (volPct / 100))
 
-  const target = currentPrice * (1 + Math.max(0.012, baseTargetProfitPct * hScale))
+  const target = currentPrice * (1 + Math.max(0.008, baseTargetProfitPct * hScale))
   const stop = currentPrice * (1 + Math.min(-0.01, baseStopTailPct * hScale))
 
   return {
