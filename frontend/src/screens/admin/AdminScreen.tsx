@@ -11,6 +11,7 @@ import {
   Eye,
   EyeOff,
   UserCheck,
+  RefreshCw,
 } from 'lucide-react'
 import {
   getUsers,
@@ -26,9 +27,16 @@ import { cx } from '@/lib/format'
 interface AdminScreenProps {
   currentUser: UserAccount
   onUserSessionUpdate: (updated: UserAccount) => void
+  isSyncingPrices?: boolean
+  onSyncPrices?: () => void
 }
 
-export function AdminScreen({ currentUser, onUserSessionUpdate }: AdminScreenProps) {
+export function AdminScreen({
+  currentUser,
+  onUserSessionUpdate,
+  isSyncingPrices,
+  onSyncPrices,
+}: AdminScreenProps) {
   const [users, setUsers] = useState<UserAccount[]>(() => getUsers())
   const [search, setSearch] = useState('')
   const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({})
@@ -201,6 +209,37 @@ export function AdminScreen({ currentUser, onUserSessionUpdate }: AdminScreenPro
           tone="up"
         />
       </section>
+
+      {/* ── 2b. Live Market Feed & Quote Synchronization ─────── */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-line bg-surface p-3.5">
+        <div className="flex items-center gap-3">
+          <div className="flex size-9 items-center justify-center rounded-lg border border-accent/30 bg-accent/10 text-accent">
+            <RefreshCw className={cx("size-4", isSyncingPrices && "animate-spin")} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-semibold text-fg">Real-Time Market Data Feed</span>
+              <span className="rounded bg-up/15 border border-up/30 px-1.5 py-0.5 text-[9.5px] font-bold text-up font-mono">
+                NSE FEED ACTIVE
+              </span>
+            </div>
+            <p className="mt-0.5 text-[11.5px] text-fg-3">
+              Refresh live prices, OHLCV candles, and percent changes across all 45 NSE equities and ETFs
+            </p>
+          </div>
+        </div>
+
+        {onSyncPrices && (
+          <button
+            onClick={onSyncPrices}
+            disabled={isSyncingPrices}
+            className="flex items-center gap-2 rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-canvas transition-all hover:opacity-90 active:scale-95 disabled:opacity-60 shadow-sm"
+          >
+            <RefreshCw className={cx("size-3.5", isSyncingPrices && "animate-spin")} />
+            <span>{isSyncingPrices ? "Syncing Quotes..." : "Sync Market Feed"}</span>
+          </button>
+        )}
+      </div>
 
       {/* ── 3. Full-Width User Accounts Directory ────────────── */}
       <Panel

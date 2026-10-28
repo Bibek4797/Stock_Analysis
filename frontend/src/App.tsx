@@ -761,11 +761,10 @@ export default function App() {
           <div className="w-full pb-16">
 
             <AdminScreen
-
               currentUser={currentUser}
-
               onUserSessionUpdate={(updated) => setCurrentUser(updated)}
-
+              isSyncingPrices={isSyncingPrices}
+              onSyncPrices={syncLiveQuotes}
             />
 
           </div>

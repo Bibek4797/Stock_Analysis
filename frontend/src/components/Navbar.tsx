@@ -117,16 +117,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={onSyncPrices}
             disabled={isSyncingPrices}
-            title="Refresh with latest settled NSE prices"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-mono transition-all duration-200 hover:border-emerald-500/40 hover:bg-emerald-950/20 active:scale-95 disabled:opacity-60"
+            title="Refresh with latest live NSE market quotes"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-mono transition-all duration-200 hover:border-emerald-500/40 hover:bg-emerald-950/20 active:scale-95 disabled:opacity-60 whitespace-nowrap"
             style={{
               background: 'rgba(14,18,26,0.85)',
               borderColor: 'rgba(30,36,48,0.85)',
             }}
           >
-            <RefreshCw className={`w-3 h-3 text-emerald-400 ${isSyncingPrices ? 'animate-spin' : ''}`} />
-            <span className="text-[10px] text-slate-300 font-medium hidden sm:inline">
-              {marketDataDate ? `Settled: ${marketDataDate}` : 'Sync'}
+            <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isSyncingPrices ? 'animate-spin' : ''}`} />
+            <span className="text-[11px] text-slate-300 font-medium">
+              {isSyncingPrices ? 'Syncing...' : 'Sync Market'}
             </span>
           </button>
         )}

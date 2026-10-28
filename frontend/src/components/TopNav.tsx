@@ -114,13 +114,16 @@ export function TopNav({
             <button
               onClick={onSyncPrices}
               disabled={isSyncingPrices}
-              title={`Latest Settled Data: ${marketDataDate || 'Today'}. Click to re-fetch live market quotes.`}
-              className="flex items-center gap-1.5 rounded-md border border-line bg-surface-2 px-2 py-1 text-[11px] font-mono font-medium text-fg-2 transition-colors hover:border-accent/50 hover:text-accent active:scale-95 disabled:opacity-60"
+              title="Click to sync live prices from market feed"
+              className={cx(
+                "flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11.5px] font-mono font-medium transition-all duration-150 whitespace-nowrap shrink-0 active:scale-95 disabled:opacity-60",
+                isSyncingPrices
+                  ? "border-accent/40 bg-accent/10 text-accent"
+                  : "border-line bg-surface-2 text-fg-2 hover:border-accent/50 hover:bg-surface-3 hover:text-accent"
+              )}
             >
-              <RefreshCw className={cx('size-3 text-accent', isSyncingPrices && 'animate-spin')} />
-              <span className="hidden sm:inline">
-                {marketDataDate ? `Settled: ${marketDataDate}` : 'Sync Quotes'}
-              </span>
+              <RefreshCw className={cx("size-3.5 text-accent", isSyncingPrices && "animate-spin")} />
+              <span>{isSyncingPrices ? "Syncing..." : "Sync Market"}</span>
             </button>
           )}
 
