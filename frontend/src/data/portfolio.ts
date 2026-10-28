@@ -151,6 +151,69 @@ function riskStats(w: number[], sig: number[]) {
 
 }
 
+/**
+ * Select the optimal alpha basket of stocks tailored to capital and risk.
+ * Filters out negative expected drift and stocks whose price cannot be purchased with the allocated tranche.
+ */
+export function getBestAlphaSymbols(
+  capital: number = 100000,
+  horizon: number = 5,
+  prices: Record<string, number> = {},
+  count: number = 8,
+  entryIdx?: number
+): string[] {
+  const { isCrash } = isMarketInCrash(entryIdx)
+  const nonEtfStocks = STOCKS.filter((s) => s.sector !== 'ETF')
+
+  const evaluated = nonEtfStocks.map((s) => ({
+    s,
+    fc: forecast(s, prices[s.symbol] ?? s.price, horizon, { entryIdx }),
+  }))
+
+  const maxPrice = Math.max(120, capital * 0.35)
+  let pool = evaluated.filter((x) => x.fc.price <= maxPrice && (isCrash || x.fc.expRet > 0))
+  if (pool.length < count) {
+    pool = evaluated.filter((x) => x.fc.price <= maxPrice)
+  }
+  if (pool.length < count) {
+    pool = evaluated
+  }
+
+  const scored = pool.map((x) => {
+    const mu = x.fc.expRet
+    const rr = Math.max(0.1, x.fc.rewardRisk)
+    const tail = Math.max(0.005, Math.abs(x.fc.tail))
+    const hitBonus = (x.fc.confidence - 50) / 50
+    const alpha = ((mu * 100 * rr) / tail) * (1 + 0.15 * hitBonus)
+    return { ...x, alpha }
+  })
+
+  scored.sort((a, b) => b.alpha - a.alpha)
+
+  const sectorCount = new Map<string, number>()
+  const picked: string[] = []
+
+  for (const item of scored) {
+    const c = sectorCount.get(item.s.sector) || 0
+    if (c < 2) {
+      picked.push(item.s.symbol)
+      sectorCount.set(item.s.sector, c + 1)
+      if (picked.length >= count) break
+    }
+  }
+
+  if (picked.length < count) {
+    for (const item of scored) {
+      if (!picked.includes(item.s.symbol)) {
+        picked.push(item.s.symbol)
+        if (picked.length >= count) break
+      }
+    }
+  }
+
+  return picked
+}
+
 export function buildPortfolio(
   capital: number,
   horizon: number,
@@ -181,38 +244,94 @@ export function buildPortfolio(
         .filter(Boolean) as Stock[]
     : STOCKS.filter((s) => s.sector !== 'ETF')
 
-  let ranked = pool
-    .map((s) => ({ s, fc: forecast(s, prices[s.symbol] ?? s.price, horizon, effectiveFcOpts) }))
+  const allForecasts = pool.map((s) => ({
+    s,
+    fc: forecast(s, prices[s.symbol] ?? s.price, horizon, effectiveFcOpts),
+  }))
 
-  if (!hasCustom) {
-    if (strategy === 'trc') {
-      // Ray Dalio All-Weather Risk Parity: Multi-sector diversification, lowest volatility
-      const bySector = new Map<string, (typeof ranked)[0]>()
-      const sortedByLowVol = [...ranked].sort((a, b) => a.fc.annVol - b.fc.annVol)
-      for (const item of sortedByLowVol) {
-        if (!bySector.has(item.s.sector)) {
-          bySector.set(item.s.sector, item)
+  let ranked: Array<{ s: Stock; fc: Forecast }> = []
+
+  if (hasCustom) {
+    // User explicitly customized the basket: preserve their exact selected universe
+    ranked = allForecasts
+  } else {
+    // AUTOMATIC OPTIMAL BASKET OPTIMIZER:
+    // 1. Dynamic basket sizing based on capital to ensure integer lot liquidity:
+    //    - Capital < ₹20,000: 4 high-alpha stocks (~₹4,500/stock tranche, ensures whole shares)
+    //    - Capital ₹20,000 - ₹50,000: 6 stocks (~₹3,500 - ₹7,500/stock)
+    //    - Capital >= ₹50,000: 8 stocks
+    const targetBasketSize = capital < 20000 ? 4 : capital < 50000 ? 6 : 8
+
+    // 2. Filter candidates for price feasibility:
+    //    A single share cannot exceed 35% of total capital (otherwise 0 shares or massive concentration)
+    const maxSinglePrice = Math.max(120, capital * 0.35)
+    let candidates = allForecasts.filter((item) => {
+      if (item.fc.price > maxSinglePrice) return false
+      // Exclude stocks with negative expected drift unless market is in tail crash
+      if (!isCrash && item.fc.expRet <= 0) return false
+      return true
+    })
+
+    if (candidates.length < targetBasketSize) {
+      candidates = allForecasts.filter((item) => item.fc.price <= maxSinglePrice)
+    }
+    if (candidates.length < targetBasketSize) {
+      candidates = allForecasts
+    }
+
+    // 3. Multi-Factor Quantitative Alpha Scoring aligned with Strategy:
+    const scoredCandidates = candidates.map((item) => {
+      const mu = item.fc.expRet
+      const sigma = Math.max(0.01, item.fc.sigmaH)
+      const annVol = Math.max(0.02, item.fc.annVol)
+      const tail = Math.max(0.005, Math.abs(item.fc.tail))
+      const rr = Math.max(0.1, item.fc.rewardRisk)
+
+      let score = 0
+      if (strategy === 'cvar') {
+        // CVaR: Maximize return over downside expected shortfall, boosted by reward/risk
+        score = (mu * 100 * rr) / tail
+      } else if (strategy === 'trc') {
+        // TRC: Maximum risk efficiency / Sharpe with lowest volatility penalty
+        score = mu / (annVol * annVol)
+      } else if (strategy === 'mpt') {
+        // Markowitz MPT: Maximize Information / Sharpe Ratio
+        score = mu / sigma
+      } else {
+        // Equal Weight: Pure expected return and reward-to-risk efficiency
+        score = (mu * 100 * rr) / tail
+      }
+
+      const hitBonus = (item.fc.confidence - 50) / 50
+      return { ...item, alphaScore: score * (1 + 0.15 * hitBonus) }
+    })
+
+    scoredCandidates.sort((a, b) => b.alphaScore - a.alphaScore)
+
+    // 4. Multi-Sector Diversification Constraint: Max 2 stocks per sector (1 for TRC)
+    const sectorCount = new Map<string, number>()
+    const diversified: typeof scoredCandidates = []
+
+    for (const item of scoredCandidates) {
+      const count = sectorCount.get(item.s.sector) || 0
+      const maxPerSector = strategy === 'trc' ? 1 : 2
+      if (count < maxPerSector) {
+        diversified.push(item)
+        sectorCount.set(item.s.sector, count + 1)
+        if (diversified.length >= targetBasketSize) break
+      }
+    }
+
+    if (diversified.length < targetBasketSize) {
+      for (const item of scoredCandidates) {
+        if (!diversified.some((d) => d.s.symbol === item.s.symbol)) {
+          diversified.push(item)
+          if (diversified.length >= targetBasketSize) break
         }
       }
-      ranked = Array.from(bySector.values()).slice(0, 8)
-    } else if (strategy === 'mpt') {
-      // Markowitz MPT: Maximize Sharpe ratio
-      ranked = [...ranked]
-        .sort((a, b) => (b.fc.expRet / Math.max(0.01, b.fc.sigmaH)) - (a.fc.expRet / Math.max(0.01, a.fc.sigmaH)))
-        .slice(0, 6)
-    } else if (strategy === 'equal') {
-      // Equal Weight: Core liquid largecaps
-      ranked = [...ranked]
-        .filter((x) => x.fc.score > 0.1)
-        .sort((a, b) => b.s.price - a.s.price)
-        .slice(0, 8)
-    } else {
-      // Rockafellar CVaR: Maximize return over downside expected shortfall across quality sectors
-      ranked = [...ranked]
-        .filter((x) => x.fc.score > 0.1 || ['Bank', 'IT', 'Energy', 'Auto', 'FMCG'].includes(x.s.sector))
-        .sort((a, b) => (b.fc.score / Math.max(0.005, Math.abs(b.fc.tail))) - (a.fc.score / Math.max(0.005, Math.abs(a.fc.tail))))
-        .slice(0, 8)
     }
+
+    ranked = diversified.map(({ s, fc }) => ({ s, fc }))
   }
 
   if (ranked.length === 0) {
@@ -262,8 +381,8 @@ export function buildPortfolio(
     const prevWeight = r() < 0.25 ? 0 : Math.max(0, w + (r() - 0.5) * 0.05)
     const delta = w - prevWeight
     const action: Action = Math.abs(delta) < DEADBAND ? 'HOLD' : delta > 0 ? 'BUY' : 'TRIM'
-    const shares = Math.floor((w * capital) / fc.price)
-    const invested = shares * fc.price
+    let shares = Math.floor((w * capital) / fc.price)
+    let invested = shares * fc.price
     return {
       stock: s,
       fc,
@@ -277,8 +396,23 @@ export function buildPortfolio(
       bufferSaved: action === 'HOLD' ? Math.abs(delta) * capital : 0,
       fees: invested * FEE_RATE,
     }
-
   })
+
+  // Discrete Integer Lot Sizing Pass:
+  // If any stock got 0 shares due to rounding, but the stock budget allows 1 share, allocate 1 whole share
+  let currentStockInvested = positions.reduce((a, p) => a + p.invested, 0)
+  const maxStockBudget = capital * deploy
+  for (const pos of positions) {
+    if (pos.shares === 0 && pos.weight > 0) {
+      if (currentStockInvested + pos.fc.price <= maxStockBudget) {
+        pos.shares = 1
+        pos.invested = pos.fc.price
+        pos.actualWeight = pos.invested / capital
+        pos.fees = pos.invested * FEE_RATE
+        currentStockInvested += pos.invested
+      }
+    }
+  }
   const stockInvested = positions.reduce((a, p) => a + p.invested, 0)
   const cashPrice = prices[CASH_ETF] ?? STOCK_MAP[CASH_ETF].price
   const cashShares = Math.floor((capital - stockInvested) / cashPrice)
@@ -510,12 +644,17 @@ export function adaptPortfolio(
     const effDv = effVol / Math.sqrt(252)
     const sigmaH = effDv * Math.sqrt(horizon)
     const defaultExpRet = Math.max(0.012, (s.drift ?? 0.004) * horizon)
+    const defaultStopLoss = -Math.max(0.012, 0.85 * sigmaH)
     const defaultTail = -Math.max(0.012, 1.85 * sigmaH)
     const backendH = pr.horizon || 5
     const hScale = Math.sqrt(horizon / Math.max(1, backendH))
-    const rawTargetPct = b.target_profit_gtt && b.latest_ltp ? (b.target_profit_gtt / b.latest_ltp - 1) : Math.max(defaultExpRet, 1.5 * sigmaH)
-    const rawStopPct = b.stop_loss_gtt && b.latest_ltp ? (b.stop_loss_gtt / b.latest_ltp - 1) : defaultTail
-    const targetPrice = currentPrice * (1 + Math.max(0.012, rawTargetPct * hScale))
+    const rawTargetPct = b.target_profit_gtt && b.latest_ltp
+      ? (b.target_profit_gtt / b.latest_ltp - 1)
+      : (defaultExpRet > 0 ? defaultExpRet : Math.max(0.008, 0.35 * sigmaH))
+    const rawStopPct = b.stop_loss_gtt && b.latest_ltp
+      ? (b.stop_loss_gtt / b.latest_ltp - 1)
+      : defaultStopLoss
+    const targetPrice = currentPrice * (1 + Math.max(0.008, rawTargetPct * hScale))
     const stopPrice = currentPrice * (1 + Math.min(-0.01, rawStopPct * hScale))
     const expRet = (targetPrice / currentPrice) - 1
     const tail = (stopPrice / currentPrice) - 1

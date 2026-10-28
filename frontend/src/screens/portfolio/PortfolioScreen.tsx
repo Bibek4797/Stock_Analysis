@@ -27,6 +27,7 @@ import {
 
 
   adaptBacktest,
+  getBestAlphaSymbols,
 
 
 
@@ -111,33 +112,16 @@ function CustomBasketModal({
 
 
   selectedSymbols,
-
-
-
   onApply,
-
-
-
+  capital = 100000,
+  horizon = 5,
 }: {
-
-
-
   isOpen: boolean
-
-
-
   onClose: () => void
-
-
-
   selectedSymbols: string[] | null
-
-
-
   onApply: (symbols: string[] | null) => void
-
-
-
+  capital?: number
+  horizon?: number
 }) {
 
 
@@ -262,6 +246,23 @@ function CustomBasketModal({
 
 
 
+  }
+
+  const selectBestAlpha = () => {
+    const best = getBestAlphaSymbols(capital, horizon, {}, 8)
+    setTempSelected(best)
+  }
+
+  const selectUnder1000 = () => {
+    const under = nonEtfStocks
+      .filter((s) => s.price <= 1000)
+      .map((s) => s.symbol)
+    setTempSelected(under.slice(0, 8))
+  }
+
+  const selectBluechips = () => {
+    const bluechips = ['HDFCBANK', 'TCS', 'INFY', 'ICICIBANK', 'RELIANCE', 'SBIN', 'LT', 'ITC']
+    setTempSelected(bluechips.filter((sym) => nonEtfStocks.some((s) => s.symbol === sym)))
   }
 
 
@@ -407,6 +408,26 @@ function CustomBasketModal({
 
 
             </div>
+            <button
+              onClick={selectBestAlpha}
+              className="flex items-center gap-1 rounded border border-up/50 bg-up/10 px-2.5 py-1 text-[11px] font-semibold text-up hover:bg-up/20 transition-colors"
+            >
+              <Sparkles className="size-3" />
+              <span>Best Alpha (Auto)</span>
+            </button>
+            <button
+              onClick={selectUnder1000}
+              className="rounded border border-cyan-500/40 bg-cyan-500/10 px-2 py-1 text-[11px] font-medium text-cyan-400 hover:bg-cyan-500/20 transition-colors"
+            >
+              Under ₹1,000
+            </button>
+            <button
+              onClick={selectBluechips}
+              className="rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] font-medium text-amber-400 hover:bg-amber-500/20 transition-colors"
+            >
+              Bluechips
+            </button>
+
 
 
 
@@ -1734,7 +1755,7 @@ export function PortfolioScreen({
 
 
 
-              Auto Quant Screen (Top 8)
+              ⭐ Optimal Alpha Basket (Auto Quant)
 
 
 
@@ -3114,25 +3135,12 @@ export function PortfolioScreen({
 
 
       <CustomBasketModal
-
-
-
         isOpen={isCustomModalOpen}
-
-
-
         onClose={() => setIsCustomModalOpen(false)}
-
-
-
         selectedSymbols={selectedSymbols}
-
-
-
         onApply={(syms) => onSelectSymbols?.(syms)}
-
-
-
+        capital={portfolio.capital}
+        horizon={horizon}
       />
 
 
