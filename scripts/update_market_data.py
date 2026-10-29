@@ -1,7 +1,10 @@
 import yfinance as yf
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+# Indian Standard Time (IST: UTC+5:30)
+IST = timezone(timedelta(hours=5, minutes=30))
 
 TICKERS_MAP = {
     # 1. Banking & Finance
@@ -145,7 +148,7 @@ def run_update():
             last_bar = bars[-1]
             prev_bar = bars[-2] if len(bars) > 1 else last_bar
             chg_pct = round(((last_bar["c"] / prev_bar["c"]) - 1) * 100, 2)
-            date_str = datetime.fromtimestamp(last_bar["t"] / 1000).strftime("%Y-%m-%d")
+            date_str = datetime.fromtimestamp(last_bar["t"] / 1000, tz=IST).strftime("%Y-%m-%d")
 
             today_settled_prices[sym] = {
                 "price": last_bar["c"],
@@ -168,9 +171,9 @@ def run_update():
     print(f"Saved authentic history to {history_path}")
 
     # 1b. Write live_quotes.json for runtime dynamic client fetch
-    now_str = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    now_str = datetime.now(tz=IST).strftime("%Y-%m-%dT%H:%M:%S")
     sample_sym = next(iter(today_settled_prices.keys())) if today_settled_prices else None
-    market_date_val = today_settled_prices[sample_sym]["date"] if sample_sym else datetime.now().strftime("%Y-%m-%d")
+    market_date_val = today_settled_prices[sample_sym]["date"] if sample_sym else datetime.now(tz=IST).strftime("%Y-%m-%d")
     quotes_payload = {
         "updated_at": now_str,
         "market_date": market_date_val,
