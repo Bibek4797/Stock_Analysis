@@ -29,6 +29,8 @@ interface AdminScreenProps {
   onUserSessionUpdate: (updated: UserAccount) => void
   isSyncingPrices?: boolean
   onSyncPrices?: () => void
+  marketDataDate?: string
+  syncFeedback?: string | null
 }
 
 export function AdminScreen({
@@ -36,6 +38,8 @@ export function AdminScreen({
   onUserSessionUpdate,
   isSyncingPrices,
   onSyncPrices,
+  marketDataDate,
+  syncFeedback,
 }: AdminScreenProps) {
   const [users, setUsers] = useState<UserAccount[]>(() => getUsers())
   const [search, setSearch] = useState('')
@@ -220,7 +224,7 @@ export function AdminScreen({
             <div className="flex items-center gap-2">
               <span className="text-[13px] font-semibold text-fg">Real-Time Market Data Feed</span>
               <span className="rounded bg-up/15 border border-up/30 px-1.5 py-0.5 text-[9.5px] font-bold text-up font-mono">
-                NSE FEED ACTIVE
+                NSE FEED ACTIVE {marketDataDate ? `· ${marketDataDate}` : ''}
               </span>
             </div>
             <p className="mt-0.5 text-[11.5px] text-fg-3">
@@ -236,7 +240,7 @@ export function AdminScreen({
             className="flex items-center gap-2 rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-canvas transition-all hover:opacity-90 active:scale-95 disabled:opacity-60 shadow-sm"
           >
             <RefreshCw className={cx("size-3.5", isSyncingPrices && "animate-spin")} />
-            <span>{isSyncingPrices ? "Syncing Quotes..." : "Sync Market Feed"}</span>
+            <span>{isSyncingPrices ? "Syncing Quotes..." : syncFeedback || "Sync Market Feed"}</span>
           </button>
         )}
       </div>

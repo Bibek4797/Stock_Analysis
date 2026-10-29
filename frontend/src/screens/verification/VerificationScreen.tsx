@@ -320,9 +320,9 @@ export function VerificationScreen({
   const selectedSession = allSessions[selectedEntryIdx] || allSessions[allSessions.length - 1] || {
     index: 0,
     displayDate: 'Current Session',
-    dateStr: '2026-10-28',
+    dateStr: '2026-10-29',
     settledForwardDays: 0,
-    dayOfWeek: 'Wednesday',
+    dayOfWeek: 'Thursday',
   }
 
   return (

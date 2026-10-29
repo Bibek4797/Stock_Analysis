@@ -105,7 +105,8 @@ export default function App() {
   const [livePriceMap, setLivePriceMap] = useState<Record<string, number>>({})
 
   const [chartBars, setChartBars] = useState<Bar[] | undefined>(undefined)
-  const [marketDataDate, setMarketDataDate] = useState<string>('2026-10-28')
+  const [marketDataDate, setMarketDataDate] = useState<string>('2026-10-29')
+  const [syncFeedback, setSyncFeedback] = useState<string | null>(null)
   const [isSyncingPrices, setIsSyncingPrices] = useState<boolean>(false)
 
 
@@ -194,6 +195,9 @@ export default function App() {
   // 1. Dynamic Live Quote Fetcher (Backend / Static Live Quotes fallback)
   const syncLiveQuotes = useCallback(async () => {
     setIsSyncingPrices(true)
+    let syncSuccessCount = 0
+    let effectiveDate = ''
+
     try {
       // 1. Try local backend /api/universe first
       try {
@@ -230,7 +234,10 @@ export default function App() {
             mapped.forEach((m) => {
               pMap[m.symbol] = m.price
             })
-            setLivePriceMap((prev) => ({ ...pMap, ...prev }))
+            // Crucial: newly fetched prices overwrite previous
+            setLivePriceMap((prev) => ({ ...prev, ...pMap }))
+            setSyncFeedback(`✓ Live (${mapped.length})`)
+            setTimeout(() => setSyncFeedback(null), 3500)
             return
           }
         }
@@ -239,40 +246,70 @@ export default function App() {
       }
 
       // 2. Fetch live_quotes.json with cache buster
+      let payload: any = null
       const baseUrl = import.meta.env.BASE_URL || './'
-      const qRes = await fetch(`${baseUrl}live_quotes.json?_t=${Date.now()}`, { cache: 'no-store' })
-      if (qRes.ok) {
-        const payload = await qRes.json()
-        if (payload?.quotes) {
-          if (payload.market_date) setMarketDataDate(payload.market_date)
-          const pMap: Record<string, number> = {}
-          for (const [sym, q] of Object.entries(payload.quotes)) {
-            const rawVal = (q as any)?.price ?? (q as any)?.close
-            const p = typeof rawVal === 'number' ? rawVal : Number(rawVal)
-            if (!isNaN(p) && p > 0) {
-              pMap[sym] = p
-            }
+      try {
+        const qRes = await fetch(`${baseUrl}live_quotes.json?_t=${Date.now()}`, { cache: 'no-store' })
+        if (qRes.ok) {
+          payload = await qRes.json()
+        }
+      } catch (e) {
+        console.warn('Local live_quotes fetch notice:', e)
+      }
+
+      // 3. Fallback to GitHub raw CDN if local payload missing or stale
+      if (!payload?.quotes || Object.keys(payload.quotes).length === 0) {
+        try {
+          const ghRes = await fetch(
+            `https://raw.githubusercontent.com/Bibek4797/Stock_Analysis/main/frontend/public/live_quotes.json?_t=${Date.now()}`,
+            { cache: 'no-store' }
+          )
+          if (ghRes.ok) {
+            payload = await ghRes.json()
           }
-          if (Object.keys(pMap).length > 0) {
-            setLivePriceMap((prev) => ({ ...prev, ...pMap }))
-            setStocksList((prev) =>
-              prev.map((s) => {
-                const q = payload.quotes[s.symbol]
-                if (!q) return s
-                const rawVal = q.price ?? q.close
-                const p = typeof rawVal === 'number' ? rawVal : Number(rawVal)
-                if (!isNaN(p) && p > 0) {
-                  const chg = typeof q.change_pct === 'number' ? q.change_pct / 100 : s.change
-                  return { ...s, price: p, change: chg }
-                }
-                return s
-              })
-            )
+        } catch (e) {
+          console.warn('GitHub raw fallback fetch notice:', e)
+        }
+      }
+
+      if (payload?.quotes) {
+        if (payload.market_date) {
+          setMarketDataDate(payload.market_date)
+          effectiveDate = payload.market_date
+        }
+        const pMap: Record<string, number> = {}
+        for (const [sym, q] of Object.entries(payload.quotes)) {
+          const rawVal = (q as any)?.price ?? (q as any)?.close
+          const p = typeof rawVal === 'number' ? rawVal : Number(rawVal)
+          if (!isNaN(p) && p > 0) {
+            pMap[sym] = p
           }
+        }
+        if (Object.keys(pMap).length > 0) {
+          syncSuccessCount = Object.keys(pMap).length
+          // Crucial: newly fetched prices overwrite previous
+          setLivePriceMap((prev) => ({ ...prev, ...pMap }))
+          setStocksList((prev) =>
+            prev.map((s) => {
+              const q = payload.quotes[s.symbol]
+              if (!q) return s
+              const rawVal = q.price ?? q.close
+              const p = typeof rawVal === 'number' ? rawVal : Number(rawVal)
+              if (!isNaN(p) && p > 0) {
+                const chg = typeof q.change_pct === 'number' ? q.change_pct / 100 : s.change
+                return { ...s, price: p, change: chg }
+              }
+              return s
+            })
+          )
+          setSyncFeedback(`✓ ${effectiveDate || 'Synced'} (${syncSuccessCount})`)
+          setTimeout(() => setSyncFeedback(null), 3500)
         }
       }
     } catch (e) {
       console.warn('Live quotes dynamic fetch notice:', e)
+      setSyncFeedback('Sync Failed')
+      setTimeout(() => setSyncFeedback(null), 3500)
     } finally {
       setIsSyncingPrices(false)
     }
@@ -622,6 +659,7 @@ export default function App() {
         marketDataDate={marketDataDate}
         isSyncingPrices={isSyncingPrices}
         onSyncPrices={syncLiveQuotes}
+        syncFeedback={syncFeedback}
       />
 
       <main key={tab} className="flex-1 animate-fade-in">
@@ -765,6 +803,8 @@ export default function App() {
               onUserSessionUpdate={(updated) => setCurrentUser(updated)}
               isSyncingPrices={isSyncingPrices}
               onSyncPrices={syncLiveQuotes}
+              marketDataDate={marketDataDate}
+              syncFeedback={syncFeedback}
             />
 
           </div>

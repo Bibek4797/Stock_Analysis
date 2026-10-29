@@ -24,6 +24,7 @@ export function TopNav({
   marketDataDate,
   isSyncingPrices,
   onSyncPrices,
+  syncFeedback,
 }: {
   tab: Tab
   onTab: (t: Tab) => void
@@ -35,6 +36,7 @@ export function TopNav({
   marketDataDate?: string
   isSyncingPrices?: boolean
   onSyncPrices?: () => void
+  syncFeedback?: string | null
 }) {
   const open = status === 'OPEN'
   const statusTone = open ? 'up' : status === 'PRE-OPEN' ? 'warn' : 'neutral'
@@ -111,20 +113,30 @@ export function TopNav({
 
         <div className="flex flex-1 items-center justify-end gap-2.5 sm:gap-3.5">
           {onSyncPrices && (
-            <button
-              onClick={onSyncPrices}
-              disabled={isSyncingPrices}
-              title="Click to sync live prices from market feed"
-              className={cx(
-                "flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11.5px] font-mono font-medium transition-all duration-150 whitespace-nowrap shrink-0 active:scale-95 disabled:opacity-60",
-                isSyncingPrices
-                  ? "border-accent/40 bg-accent/10 text-accent"
-                  : "border-line bg-surface-2 text-fg-2 hover:border-accent/50 hover:bg-surface-3 hover:text-accent"
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={onSyncPrices}
+                disabled={isSyncingPrices}
+                title={`Click to sync live prices from market feed (Current date: ${marketDataDate || '2026-10-29'})`}
+                className={cx(
+                  "flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11.5px] font-mono font-medium transition-all duration-150 whitespace-nowrap shrink-0 active:scale-95 disabled:opacity-60",
+                  syncFeedback
+                    ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
+                    : isSyncingPrices
+                      ? "border-accent/40 bg-accent/10 text-accent"
+                      : "border-line bg-surface-2 text-fg-2 hover:border-accent/50 hover:bg-surface-3 hover:text-accent"
+                )}
+              >
+                <RefreshCw className={cx("size-3.5", syncFeedback ? "text-emerald-400" : "text-accent", isSyncingPrices && "animate-spin")} />
+                <span>{isSyncingPrices ? "Syncing..." : syncFeedback || "Sync Market"}</span>
+              </button>
+              {marketDataDate && !syncFeedback && (
+                <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-line/60 bg-surface-1 text-[10.5px] font-mono text-fg-3" title="Latest authenticated market closing date">
+                  <span className="size-1.5 rounded-full bg-emerald-400" />
+                  {marketDataDate}
+                </span>
               )}
-            >
-              <RefreshCw className={cx("size-3.5 text-accent", isSyncingPrices && "animate-spin")} />
-              <span>{isSyncingPrices ? "Syncing..." : "Sync Market"}</span>
-            </button>
+            </div>
           )}
 
           <div className="hidden items-center gap-2 text-[12px] md:flex">
